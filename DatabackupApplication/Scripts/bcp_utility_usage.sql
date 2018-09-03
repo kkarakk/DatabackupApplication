@@ -1,0 +1,1 @@
+--https://dba.stackexchange.com/questions/15682/sql-server-2012-backward-compatibility-for-backups-with-2008/102858#102858
