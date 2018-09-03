@@ -38,6 +38,7 @@ namespace DatabackupApplication
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
             services.AddDbContext<BloggingContext>(options =>
         options.UseSqlServer(Configuration.GetConnectionString("BloggingDatabase")));
+            
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -61,7 +62,7 @@ namespace DatabackupApplication
             {
                 routes.MapRoute(
                     name: "default",
-                    template: "{controller=Blogs}/{action=Index}/{id?}");
+                    template: "{controller=DataBase}/{action=Index}/{id?}");
             });
         }
     }

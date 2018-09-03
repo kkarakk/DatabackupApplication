@@ -8,6 +8,8 @@
     <PackageReference Include="angularjs" Version="1.7.2" />
     <PackageReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="2.1.1" />
+    <PackageReference Include="System.Data.Common" Version="4.3.0" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.5.1" />
   </ItemGroup>
 
 </Project>
