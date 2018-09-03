@@ -22,14 +22,13 @@ namespace DatabackupApplication.Controllers
             using (var context = new BloggingContext())
             using (var command = context.Database.GetDbConnection().CreateCommand())
             {
-                command.CommandText = "select * from INFORMATION_SCHEMA.TABLES";
+                command.CommandText = "select * from INFORMATION_SCHEMA.TABLES where table_type='BASE TABLE'";
                 
                 context.Database.OpenConnection();
                 using (var result = command.ExecuteReader())
                 {
                     // do something with result
-                    table.Load(result);
-                    
+                    table.Load(result);                    
                 }
                
             }
