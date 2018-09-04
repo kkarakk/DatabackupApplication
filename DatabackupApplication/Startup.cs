@@ -16,13 +16,17 @@ namespace DatabackupApplication
 {
     public class Startup
     {
-        public Startup(IConfiguration configuration)
+        public Startup(IConfiguration configuration,IHostingEnvironment hostingEnvironment)
         {
             Configuration = configuration;
+            HostingEnvironment = hostingEnvironment;
+            
         }
 
-        public IConfiguration Configuration { get; }
+        
 
+        public IConfiguration Configuration { get; }
+        public IHostingEnvironment HostingEnvironment { get; }
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
@@ -34,6 +38,8 @@ namespace DatabackupApplication
             });
 
             services.AddSingleton<IConfiguration>(Configuration);
+
+            services.AddSingleton<IHostingEnvironment>(HostingEnvironment);
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
             services.AddDbContext<BloggingContext>(options =>
@@ -47,6 +53,8 @@ namespace DatabackupApplication
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
+                //get root directory of project
+                //var contentRoot = env.ContentRootPath;
             }
             else
             {
