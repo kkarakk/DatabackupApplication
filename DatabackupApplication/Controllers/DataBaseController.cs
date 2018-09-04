@@ -14,6 +14,7 @@ namespace DatabackupApplication.Controllers
 {
     public class DataBaseController : Controller
     {
+        
 
         public static string GenerateRandomDigitCode(int length)
         {
@@ -23,7 +24,7 @@ namespace DatabackupApplication.Controllers
                 str = string.Concat(str, random.Next(10).ToString());
             return str;
         }
-        // GET: /<controller>/
+        
         private static string databaseName;
         private string appDirectory;
         public IHostingEnvironment _hostingEnvironment;
@@ -40,9 +41,36 @@ namespace DatabackupApplication.Controllers
             Configuration = configuration;
 
         }
-        
 
-        public IActionResult Index()
+        // GET: /<controller>/
+        public IActionResult  Index()
+        {
+            System.Data.DataTable table = GetTableRows();
+
+            //ContextBoundObject.
+            return View(table);
+        }
+
+        [HttpPost]
+        public void DataBaseBackup()
+        {
+            //   Response.Write("[" + testinput + "]");
+
+            
+            // sqlcommand
+            using (var dbContext = new BloggingContext())
+            {
+                string fileName = databaseBackupFileName(dbContext);
+
+                var commandText = $"BACKUP DATABASE [{databaseName}] TO DISK = '{fileName}' WITH FORMAT";
+                ExecuteDatabaseBackup(dbContext, commandText);
+            }
+                
+
+            
+        }
+
+        private System.Data.DataTable GetTableRows()
         {
             var table = new System.Data.DataTable();
             using (var dbContext = new BloggingContext())
@@ -56,20 +84,22 @@ namespace DatabackupApplication.Controllers
                     // do something with result
                     table.Load(result);
                 }
-                //return the database name
-                appDirectory = _hostingEnvironment.ContentRootPath;
-                databaseName = dbContext.Database.GetDbConnection().Database;
-                //var fileName = $"{appDirectory}database_{DateTime.Now:yyyy-MM-dd-HH-mm-ss}_{GenerateRandomDigitCode(10)}.{Configuration["DbBackupFileExtension"]}";
-                var fileName = $"{Configuration["BackupDirectoryPath"]}database_{DateTime.Now:yyyy-MM-dd-HH-mm-ss}_{GenerateRandomDigitCode(10)}.{Configuration["DbBackupFileExtension"]}";
-
-                var commandText = $"BACKUP DATABASE [{databaseName}] TO DISK = '{fileName}' WITH FORMAT";
-                // sqlcommand
-
-                ExecuteDatabaseBackup(dbContext, commandText);
+                
             }
 
-            //ContextBoundObject.
-            return View(table);
+            return table;
+        }
+
+        private string databaseBackupFileName(BloggingContext dbContext)
+        {
+            //return the database name
+            appDirectory = _hostingEnvironment.ContentRootPath;
+            databaseName = dbContext.Database.GetDbConnection().Database;
+            //backup to wherever app is installed
+            //var fileName = $"{appDirectory}database_{DateTime.Now:yyyy-MM-dd-HH-mm-ss}_{GenerateRandomDigitCode(10)}.{Configuration["DbBackupFileExtension"]}";
+            //backup to particular directory
+            var fileName = $"{Configuration["BackupDirectoryPath"]}database_{DateTime.Now:yyyy-MM-dd-HH-mm-ss}_{GenerateRandomDigitCode(10)}.{Configuration["DbBackupFileExtension"]}";
+            return fileName;
         }
 
         private static void ExecuteDatabaseBackup(BloggingContext dbContext, string commandText)
