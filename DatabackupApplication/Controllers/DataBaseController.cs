@@ -54,20 +54,27 @@ namespace DatabackupApplication.Controllers
                 using (var result = dbCommand.ExecuteReader())
                 {
                     // do something with result
-                    table.Load(result);                    
+                    table.Load(result);
                 }
                 //return the database name
                 appDirectory = _hostingEnvironment.ContentRootPath;
                 databaseName = dbContext.Database.GetDbConnection().Database;
-                var fileName = $"{appDirectory}database_{DateTime.Now:yyyy-MM-dd-HH-mm-ss}_{GenerateRandomDigitCode(10)}.{Configuration["DbBackupFileExtension"]}";
-                //var commandText = $"BACKUP DATABASE [{databaseName}] TO DISK = '{fileName}' WITH FORMAT";
+                //var fileName = $"{appDirectory}database_{DateTime.Now:yyyy-MM-dd-HH-mm-ss}_{GenerateRandomDigitCode(10)}.{Configuration["DbBackupFileExtension"]}";
+                var fileName = $"{Configuration["BackupDirectoryPath"]}database_{DateTime.Now:yyyy-MM-dd-HH-mm-ss}_{GenerateRandomDigitCode(10)}.{Configuration["DbBackupFileExtension"]}";
+
+                var commandText = $"BACKUP DATABASE [{databaseName}] TO DISK = '{fileName}' WITH FORMAT";
                 // sqlcommand
-                
-                //dbContext.Database.ExecuteSqlCommand()
+
+                ExecuteDatabaseBackup(dbContext, commandText);
             }
-            
+
             //ContextBoundObject.
             return View(table);
+        }
+
+        private static void ExecuteDatabaseBackup(BloggingContext dbContext, string commandText)
+        {
+            dbContext.Database.ExecuteSqlCommand(commandText, true);
         }
     }
 }
