@@ -8,6 +8,7 @@ using DatabackupApplication.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Hosting;
+using System.IO;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -16,6 +17,19 @@ namespace DatabackupApplication.Controllers
     public class DataBaseController : Controller
     {
         
+        public DataBaseController(IHostingEnvironment hostingEnvironment, IConfiguration configuration,BloggingContext context)
+        {
+            if (hostingEnvironment == null)
+                throw new ArgumentNullException(nameof(hostingEnvironment));
+            else
+            {
+                _hostingEnvironment = hostingEnvironment;
+            }
+
+            Configuration = configuration;
+            _context = context;
+
+        }
 
         public static string GenerateRandomDigitCode(int length)
         {
@@ -30,30 +44,32 @@ namespace DatabackupApplication.Controllers
         private string appDirectory;
         public IHostingEnvironment _hostingEnvironment;
         public IConfiguration Configuration;
-        public DataBaseController(IHostingEnvironment hostingEnvironment,IConfiguration configuration)
-        {
-            if (hostingEnvironment == null)
-                throw new ArgumentNullException(nameof(hostingEnvironment));
-            else
-            {
-                _hostingEnvironment = hostingEnvironment;
-            }
-
-            Configuration = configuration;
-
-        }
+        private BloggingContext _context;
+        
 
         // GET: /<controller>/
-        public IActionResult  Index()
+        public async Task<IActionResult>  Index()
         {
-            System.Data.DataTable table = GetTableRows();
+            //DataTable table = GetTableRows();
+            DataTable table = await Task.Run(() => GetTableRows());
 
+            //var backupFileNames = _maintenanceService.GetAllBackupFiles().ToList();
+            var list= Directory.GetFiles(Configuration["BackupDirectoryPath"],$"*.{Configuration["DbBackupFileExtension"]}", SearchOption.AllDirectories);
+            var fileName = list.OrderByDescending(path => System.IO.File.GetLastWriteTime(path)).FirstOrDefault();//.OrderByDescending(p => p.LastWriteTime).FirstOrDefault()
+            //var fileName = new DirectoryInfo(Configuration["BackupDirectoryPath"]).GetFiles().OrderByDescending(p=>p.LastWriteTime).FirstOrDefault();
+            //var fileName = dirInfo.GetFiles().OrderByDescending(o => o.LastWriteTime).FirstOrDefault();
+            // File.GetLastWriteTime()
             //ContextBoundObject.
             return View(table);
         }
 
+        private object getFileWriteTime(string path)
+        {
+            return System.IO.File.GetLastWriteTime(path);
+        }
+
         [HttpPost]
-        public IActionResult DataBaseBackup()
+        public async Task<IActionResult> DataBaseBackup()
         {
             //   Response.Write("[" + testinput + "]");
             
@@ -62,7 +78,8 @@ namespace DatabackupApplication.Controllers
                 string fileName = GetDatabaseBackupFileName(dbContext, Configuration["DbBackupFileExtension"]);
 
                 var commandText = $"BACKUP DATABASE [{databaseName}] TO DISK = '{fileName}' WITH FORMAT";
-                ExecuteDatabaseBackup(dbContext, commandText);
+                 await Task.Run(() => ExecuteDatabaseBackup(dbContext, commandText));
+                
             }
 
             using (var DbContext = new BloggingContext())
@@ -81,32 +98,16 @@ namespace DatabackupApplication.Controllers
                 DbCommand.CommandType = System.Data.CommandType.Text;
                 DbCommand.CommandText = sCommandText;
 
-                DbCommand.ExecuteNonQuery();
+                
+                await Task.Run(() => DbCommand.ExecuteNonQuery());
             }
 
 
-            return RedirectToAction(nameof(Index));
+            return  RedirectToAction(nameof(Index));
 
         }
 
-        //private static void BCPdatabaseBackup()
-        //{
-        //    using (var DbContext = new BloggingContext())
-        //    using (var DbCommand = DbContext.Database.GetDbConnection().CreateCommand())
-        //    {
-
-        //        databaseName = DbContext.Database.GetDbConnection().Database;
-        //        //string sCommandText = "exec xp_cmdShell 'bcp.exe'" + databaseName + ".." + "" + " in " +
-        //        //                              GetDatabaseBackupFileName(DbContext,"dat") + " - c -q -U " +  Configuration["UserID"] + " -P " + Configuration["Password"] + "-t  ";
-        //        //string CommandText = ($"exec xp_cmdShell 'bcp.exe' {0} .. in {1} -c -q -U {2} -P {3} -t ", databaseName,GetDataBackupFileName(DbContext,"dat"),Configuration["UserId"],Configuration["Password"]); 
-        //      // $"{Configuration["BackupDirectoryPath"]}database_{DateTime.Now:yyyy-MM-dd-HH-mm-ss}_{GenerateRandomDig*/itCode(10)}.{BackupFileExtension}";
-        //        DbCommand.CommandType = System.Data.CommandType.Text;
-        //        DbCommand.CommandText = sCommandText;
-
-        //        DbCommand.ExecuteNonQuery();
-        //    }
-
-        //}
+     
 
         private System.Data.DataTable GetTableRows()
         {
@@ -142,7 +143,7 @@ namespace DatabackupApplication.Controllers
 
         private static void ExecuteDatabaseBackup(BloggingContext dbContext, string commandText)
         {
-            dbContext.Database.ExecuteSqlCommand(commandText, true);
+             dbContext.Database.ExecuteSqlCommand(commandText, true);
         }
     }
 }
