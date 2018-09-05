@@ -62,7 +62,8 @@ namespace DatabackupApplication.Controllers
             //ContextBoundObject.
             ViewData["databaseBackupFileName"] = databaseBackupFileName;
             ViewData["databaseBackupFilePath"] = Configuration["BackupDirectoryPath"];
-            return View(table);//change this to use model instead
+            ViewData["timeOfBackup"] = System.IO.File.GetCreationTime(databaseBackupFileName);
+            return View(table);//TODO: change this to use VIEW model instead
         }
 
         // POST: /<controller>/
