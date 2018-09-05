@@ -55,35 +55,33 @@ namespace DatabackupApplication.Controllers
 
             //var backupFileNames = _maintenanceService.GetAllBackupFiles().ToList();
             var list= Directory.GetFiles(Configuration["BackupDirectoryPath"],$"*.{Configuration["DbBackupFileExtension"]}", SearchOption.AllDirectories);
-            var fileName = list.OrderByDescending(path => System.IO.File.GetLastWriteTime(path)).FirstOrDefault();//.OrderByDescending(p => p.LastWriteTime).FirstOrDefault()
+            var databaseBackupFileName = list.OrderByDescending(path => System.IO.File.GetLastWriteTime(path)).FirstOrDefault();//.OrderByDescending(p => p.LastWriteTime).FirstOrDefault()
             //var fileName = new DirectoryInfo(Configuration["BackupDirectoryPath"]).GetFiles().OrderByDescending(p=>p.LastWriteTime).FirstOrDefault();
             //var fileName = dirInfo.GetFiles().OrderByDescending(o => o.LastWriteTime).FirstOrDefault();
             // File.GetLastWriteTime()
             //ContextBoundObject.
-            return View(table);
+            ViewData["databaseBackupFileName"] = databaseBackupFileName;
+            ViewData["databaseBackupFilePath"] = Configuration["BackupDirectoryPath"];
+            return View(table);//change this to use model instead
         }
 
-        private object getFileWriteTime(string path)
-        {
-            return System.IO.File.GetLastWriteTime(path);
-        }
-
+        // POST: /<controller>/
         [HttpPost]
         public async Task<IActionResult> DataBaseBackup()
         {
             //   Response.Write("[" + testinput + "]");
-            
+
             using (var dbContext = new BloggingContext())
             {
                 string fileName = GetDatabaseBackupFileName(dbContext, Configuration["DbBackupFileExtension"]);
 
                 var commandText = $"BACKUP DATABASE [{databaseName}] TO DISK = '{fileName}' WITH FORMAT";
-                 await Task.Run(() => ExecuteDatabaseBackup(dbContext, commandText));
-                
+                await Task.Run(() => ExecuteDatabaseBackup(dbContext, commandText));
+
             }
 
             using (var DbContext = new BloggingContext())
-            using (var DbCommand = DbContext.Database.GetDbConnection().CreateCommand())   
+            using (var DbCommand = DbContext.Database.GetDbConnection().CreateCommand())
             {
 
                 DbContext.Database.GetDbConnection().Open();
@@ -98,14 +96,22 @@ namespace DatabackupApplication.Controllers
                 DbCommand.CommandType = System.Data.CommandType.Text;
                 DbCommand.CommandText = sCommandText;
 
-                
+
                 await Task.Run(() => DbCommand.ExecuteNonQuery());
             }
 
-
-            return  RedirectToAction(nameof(Index));
+            
+            return RedirectToAction(nameof(Index));
 
         }
+
+
+        private object getFileWriteTime(string path)
+        {
+            return System.IO.File.GetLastWriteTime(path);
+        }
+
+        
 
      
 

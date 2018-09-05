@@ -1,8 +1,8 @@
 ﻿@*@{
-        ViewData["Title"] = "View";
-    }
+            ViewData["Title"] = "View";
+        }
 
-<h2>View</h2>*@
+    <h2>View</h2>*@
 
 @model System.Data.DataTable
 @using System.Data;
@@ -15,26 +15,37 @@
         <tr>
             @foreach (DataColumn col in Model.Columns)
             {
-            <th>@col.ColumnName</th>
+                <th>@col.ColumnName</th>
             }
         </tr>
     </thead>
     <tbody>
         @foreach (DataRow row in Model.Rows)
         {
-        <tr>
-            @foreach (DataColumn col in Model.Columns)
-            {
-            <td>@row[col.ColumnName]</td>
-            }
-        </tr>
+            <tr>
+                @foreach (DataColumn col in Model.Columns)
+                {
+                    <td>@row[col.ColumnName]</td>
+                }
+            </tr>
         }
     </tbody>
 </table>
+<p></p>
+<label>File Path:</label>
+<label id="latest-backup-name" name="latest-backup-name">
+    @ViewData["databaseBackupFilePath"]
+</label>
+<p></p>
 
+<p></p>
+<label> Latest backup file:</label>
+<label id="latest-backup-name" name="latest-backup-name">
+    @ViewData["databaseBackupFileName"]
+</label>
+<p></p>
 <form asp-controller="Database" asp-action="DataBaseBackup" method="post">
-    @*<label id="latest-backup-name" name="latest-backup-name" class="label label-primary">
-    </label>*@
+
     <button type="submit" id="backup-database" name="backup-database" class="btn btn-primary">
         Backup Database
     </button>
