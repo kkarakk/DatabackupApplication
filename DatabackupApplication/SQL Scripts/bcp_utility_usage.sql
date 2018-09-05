@@ -25,3 +25,25 @@ select *
 FROM INFORMATION_SCHEMA.TABLES t
 WHERE t.TABLE_TYPE = 'BASE TABLE'
 AND TABLE_CATALOG='Blogging';
+
+select *from blogging..Blog
+--SQLCMD MODE ENABLE
+use blogging
+!!bcp "select * FROM INFORMATION_SCHEMA.TABLES ;" queryout D:\authors.txt -S .\SQLExpress -U sa -P 123456 -c
+
+!! exec xp_cmdshell bcp "select * FROM INFORMATION_SCHEMA.TABLES ;" queryout D:\authors.txt -S .\SQLExpress -U sa -P 123456 -c
+
+!!bcp blogging in d:\blogging.bak 
+
+
+USE BLOGGING;
+SELECT * FROM blogging.INFORMATION_SCHEMA.TABLES where table_name = 'blog';
+USE nopdatabase;
+select * from information_schema.tables;
+
+use blogging;
+select * from blogging..blog;
+!!bcp blogging.blog out d:\backup.bcp -c -T -S .\SQLExpress -U sa -P 123456 -c
+
+--WHATS YOUR SERVER NAME
+SELECT @@SERVERNAME

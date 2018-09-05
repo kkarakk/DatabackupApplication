@@ -26,7 +26,7 @@ namespace DatabackupApplication.Controllers
             return str;
         }
         
-        private static string databaseName;
+        private  string databaseName;
         private string appDirectory;
         public IHostingEnvironment _hostingEnvironment;
         public IConfiguration Configuration;
@@ -53,37 +53,39 @@ namespace DatabackupApplication.Controllers
         }
 
         [HttpPost]
-        public void DataBaseBackup()
+        public IActionResult DataBaseBackup()
         {
             //   Response.Write("[" + testinput + "]");
-
-
-            // sqlcommand
+            
             using (var dbContext = new BloggingContext())
             {
-                string fileName = GetDatabaseBackupFileName(dbContext,Configuration["DbBackupFileExtension"]);
+                string fileName = GetDatabaseBackupFileName(dbContext, Configuration["DbBackupFileExtension"]);
 
                 var commandText = $"BACKUP DATABASE [{databaseName}] TO DISK = '{fileName}' WITH FORMAT";
                 ExecuteDatabaseBackup(dbContext, commandText);
             }
 
             using (var DbContext = new BloggingContext())
-            using (var DbCommand = DbContext.Database.GetDbConnection().CreateCommand())
+            using (var DbCommand = DbContext.Database.GetDbConnection().CreateCommand())   
             {
 
-                databaseName = DbContext.Database.GetDbConnection().Database;
+                DbContext.Database.GetDbConnection().Open();
+                var DBdatabaseName = DbContext.Database.GetDbConnection().Database;
                 //string sCommandText = "exec xp_cmdShell 'bcp.exe'" + databaseName + ".." + "" + " in " +
                 //                              GetDatabaseBackupFileName(DbContext,"dat") + " - c -q -U " +  Configuration["UserID"] + " -P " + Configuration["Password"] + "-t  ";
                 //string CommandText = ($"exec xp_cmdShell 'bcp.exe' {0} .. in {1} -c -q -U {2} -P {3} -t ", databaseName,GetDataBackupFileName(DbContext,"dat"),Configuration["UserId"],Configuration["Password"]); 
                 // $"{Configuration["BackupDirectoryPath"]}database_{DateTime.Now:yyyy-MM-dd-HH-mm-ss}_{GenerateRandomDig*/itCode(10)}.{BackupFileExtension}";
-                //DbCommand.CommandType = System.Data.CommandType.Text;
-                //DbCommand.CommandText = sCommandText;
+                //string sCommandText = "exec xp_cmdshell " + "'bcp.exe' " + "'select * FROM INFORMATION_SCHEMA.TABLES' " + "queryout " + @"D:\authors.txt " + @" -S .\SQLExpress -U sa -P 123456 -c";
+                string sCommandText = @"exec xp_cmdshell 'bcp.exe ""select * FROM blogging.INFORMATION_SCHEMA.TABLES""  queryout D:\authors.txt -S .\SQLExpress -U sa -P 123456 -c'";
+                //string CommandText = $"exec xp_cmdShell 'bcp.exe {0} .. in {1} -c -q -U {2} -P {3} -t '", DBdatabaseName, GetDatabaseBackupFileName(DbContext,"dat"),Configuration["UserId"],Configuration["Password"]); 
+                DbCommand.CommandType = System.Data.CommandType.Text;
+                DbCommand.CommandText = sCommandText;
 
-              //  DbCommand.ExecuteNonQuery();
+                DbCommand.ExecuteNonQuery();
             }
 
 
-            //BCPdatabaseBackup();
+            return RedirectToAction(nameof(Index));
 
         }
 
