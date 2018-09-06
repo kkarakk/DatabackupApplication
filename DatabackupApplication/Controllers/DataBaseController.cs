@@ -81,14 +81,17 @@ namespace DatabackupApplication.Controllers
 
         private String GetPreExistingDatabaseBackupFileName()
         {
-            var list = Directory.GetFiles(Configuration["BackupDirectoryPath"], $"*.{Configuration["DbBackupFileExtension"]}", SearchOption.TopDirectoryOnly);
-            var databaseBackupFileName = list.OrderByDescending(path => System.IO.File.GetLastWriteTime(path)).FirstOrDefault();
+            
+            string SearchPattern= $"*.{Configuration["DbBackupFileExtension"]}";
+            var list = Directory.GetFiles(Configuration["BackupDirectoryPath"], SearchPattern, SearchOption.TopDirectoryOnly);
+            var databaseBackupFileName = list.OrderByDescending(path => System.IO.File.GetLastWriteTime(path)).SingleOrDefault(str => str.Contains("FullDatabaseBackup"));
+     
             return databaseBackupFileName;
         }
 
         // POST: /<controller>/
         [HttpPost]
-        public async Task<IActionResult> TakeDataBaseBackup()
+        public async Task<IActionResult> TakeDataBaseBackup(string Backup)
         {
             //   Response.Write("[" + testinput + "]");
 
@@ -119,7 +122,23 @@ namespace DatabackupApplication.Controllers
 
         }
 
-        private async Task DatabaseBackup(string Arguments,string TypeOfBackup)
+        [HttpPost]
+        public async Task<IActionResult> TakeDataBaseBackupDifferential(string Backup)
+        {
+            if (IsNullOrEmpty(GetPreExistingDatabaseBackupFileName()))
+            {
+                //TODO: what should be done if full backup doesn't exist'
+            }
+            else
+            {
+                await DatabaseBackup(Configuration["DifferentialDbBackupArguments"], "Differential");
+            }
+            
+            return RedirectToAction(nameof(Index));
+        }
+
+
+            private async Task DatabaseBackup(string Arguments,string TypeOfBackup)
         {
             using (var dbContext = new BloggingContext())
             {

@@ -49,10 +49,13 @@
     @ViewData["databaseBackupFileName"]
 </label>
 <p></p>
-<form asp-controller="Database" asp-action="TakeDataBaseBackup" method="post">
+<form asp-controller="Database" method="post">
 
-    <button type="submit" id="backup-database" name="backup-database" class="btn btn-primary">
-        Backup Database
+    <button type="submit" id="backup-database" name="backup-database" asp-action="TakeDataBaseBackup" class="btn btn-primary">
+        Backup Database Full
+    </button>
+    <button type="submit" id="backup-database-differential" name="backup-database-differential" asp-action="TakeDataBaseBackupDifferential" class="btn btn-primary">
+        Backup Database Differential
     </button>
 
 </form>
