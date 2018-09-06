@@ -13,6 +13,8 @@
 <table>
     <thead>
         <tr>
+            <td>
+            </td>
             @foreach (DataColumn col in Model.Columns)
             {
                 <th>@col.ColumnName</th>
@@ -22,12 +24,15 @@
     <tbody>
         @foreach (DataRow row in Model.Rows)
         {
-            <tr>
-                @foreach (DataColumn col in Model.Columns)
-                {
-                    <td>@row[col.ColumnName]</td>
-                }
-            </tr>
+        <tr>
+            <td>
+                <input type="checkbox" />
+            </td>
+            @foreach (DataColumn col in Model.Columns)
+            {
+                <td>@row[col.ColumnName]</td>
+            }
+        </tr>
         }
     </tbody>
 </table>

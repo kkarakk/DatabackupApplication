@@ -170,6 +170,7 @@ namespace DatabackupApplication.Controllers
                 dbCommand.CommandText = "select * from INFORMATION_SCHEMA.TABLES where table_type='BASE TABLE'";
                 
                 dbContext.Database.OpenConnection();
+                
                 using (var result = dbCommand.ExecuteReader())
                 {
                     // do something with result

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.Extensions.Configuration;
@@ -22,7 +23,7 @@ namespace DatabackupApplication.Models
         //}
         public virtual DbSet<Blog> Blog { get; set; }
         public virtual DbSet<Post> Post { get; set; }
-        
+        public  DataTable dataBaseTable;//for database controller
 
         //public IConfiguration Configuration { get; }
 
