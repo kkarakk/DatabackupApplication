@@ -45,8 +45,14 @@ use blogging;
 select * from blogging..blog;
 !!bcp blogging..blog out d:\backup.bcp -c -T -S .\SQLExpress -U sa -P 123456 -c
 
-backup database blogging to disk='d:\backup\blogging.bak' with INIT;
+backup database blogging to disk='d:\backup\bloggingDifferential.bak' WITH DIFFERENTIAL;
 
 
+RESTORE HEADERONLY FROM
+     DISK = 'd:\backup\BloggingDatabaseBackup.bak'
+
+	 
+RESTORE HEADERONLY FROM
+     DISK = 'd:\backup\bloggingDifferential.bak'
 --WHATS YOUR SERVER NAME
 SELECT @@SERVERNAME

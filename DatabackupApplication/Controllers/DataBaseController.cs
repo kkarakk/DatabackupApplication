@@ -88,20 +88,11 @@ namespace DatabackupApplication.Controllers
 
         // POST: /<controller>/
         [HttpPost]
-        public async Task<IActionResult> DataBaseBackup()
+        public async Task<IActionResult> TakeDataBaseBackup()
         {
             //   Response.Write("[" + testinput + "]");
 
-            using (var dbContext = new BloggingContext())
-            {
-
-                string fileName = GetNewDatabaseBackupFileName(dbContext, Configuration["DbBackupFileExtension"]);
-                ////WITH FORMAT appends full database backup to same file 
-                //var commandText = $"BACKUP DATABASE [{databaseName}] TO DISK = '{fileName}' WITH FORMAT";
-                string commandText = $"BACKUP DATABASE [{databaseName}] TO DISK = '{fileName}' WITH INIT";
-                await Task.Run(() => ExecuteDatabaseBackup(dbContext, commandText));
-
-            }
+            await DatabaseBackup(Configuration["FullDbBackupArguments"],"Full");
 
             using (var DbContext = new BloggingContext())
             using (var DbCommand = DbContext.Database.GetDbConnection().CreateCommand())
@@ -123,11 +114,24 @@ namespace DatabackupApplication.Controllers
                 await Task.Run(() => DbCommand.ExecuteNonQuery());
             }
 
-            
+
             return RedirectToAction(nameof(Index));
 
         }
 
+        private async Task DatabaseBackup(string Arguments,string TypeOfBackup)
+        {
+            using (var dbContext = new BloggingContext())
+            {
+
+                string fileName = GetNewDatabaseBackupFileName(dbContext, Configuration["DbBackupFileExtension"],TypeOfBackup);
+                ////WITH FORMAT appends full database backup to same file 
+                //var commandText = $"BACKUP DATABASE [{databaseName}] TO DISK = '{fileName}' WITH FORMAT";
+                string commandText = $"BACKUP DATABASE [{databaseName}] TO DISK = '{fileName}' WITH {Arguments}";
+                await Task.Run(() => ExecuteDatabaseBackup(dbContext, commandText));
+
+            }
+        }
 
         private object getFileWriteTime(string path)
         {
@@ -158,7 +162,7 @@ namespace DatabackupApplication.Controllers
             return table;
         }
 
-        private string GetNewDatabaseBackupFileName(BloggingContext dbContext,string BackupFileExtension)
+        private string GetNewDatabaseBackupFileName(BloggingContext dbContext,string BackupFileExtension,string TypeOfBackup)
         {
             ////get the appdirectory location to search for backup files
             //appDirectory = _hostingEnvironment.ContentRootPath;
@@ -167,7 +171,7 @@ namespace DatabackupApplication.Controllers
             //var fileName = $"{appDirectory}database_{DateTime.Now:yyyy-MM-dd-HH-mm-ss}_{GenerateRandomDigitCode(10)}.{Configuration["DbBackupFileExtension"]}";
             ////backup to configured directory w/ random name(unique backups)
             //var fileName = $"{Configuration["BackupDirectoryPath"]}database_{DateTime.Now:yyyy-MM-dd-HH-mm-ss}_{GenerateRandomDigitCode(10)}.{BackupFileExtension}";
-            var fileName = $"{Configuration["BackupDirectoryPath"]}{databaseName}DatabaseBackup.{BackupFileExtension}";
+            var fileName = $"{Configuration["BackupDirectoryPath"]}{databaseName}{TypeOfBackup}DatabaseBackup.{BackupFileExtension}";
 
             return fileName;
         }
