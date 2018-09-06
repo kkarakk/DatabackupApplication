@@ -43,7 +43,10 @@ select * from information_schema.tables;
 
 use blogging;
 select * from blogging..blog;
-!!bcp blogging.blog out d:\backup.bcp -c -T -S .\SQLExpress -U sa -P 123456 -c
+!!bcp blogging..blog out d:\backup.bcp -c -T -S .\SQLExpress -U sa -P 123456 -c
+
+backup database blogging to disk='d:\backup\blogging.bak' with INIT;
+
 
 --WHATS YOUR SERVER NAME
 SELECT @@SERVERNAME

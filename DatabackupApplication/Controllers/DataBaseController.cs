@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Hosting;
 using System.IO;
+using static System.String;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -41,7 +42,7 @@ namespace DatabackupApplication.Controllers
         }
         
         private  string databaseName;
-        private string appDirectory;
+        //private string appDirectory;
         public IHostingEnvironment _hostingEnvironment;
         public IConfiguration Configuration;
         private BloggingContext _context;
@@ -54,16 +55,35 @@ namespace DatabackupApplication.Controllers
             DataTable table = await Task.Run(() => GetTableRows());
 
             //var backupFileNames = _maintenanceService.GetAllBackupFiles().ToList();
-            var list= Directory.GetFiles(Configuration["BackupDirectoryPath"],$"*.{Configuration["DbBackupFileExtension"]}", SearchOption.AllDirectories);
-            var databaseBackupFileName = list.OrderByDescending(path => System.IO.File.GetLastWriteTime(path)).FirstOrDefault();//.OrderByDescending(p => p.LastWriteTime).FirstOrDefault()
+            String databaseBackupFileName = await Task.Run(() => GetPreExistingDatabaseBackupFileName());
+            if (IsNullOrEmpty(databaseBackupFileName))
+            {
+                ViewData["databaseBackupFileName"] = $"Does not exist";
+                ViewData["timeOfBackup"] = "Hasn't been created yet";
+                //TODO: Delete relative backup if base backup doesn't exist
+            }
+            else
+            {
+                ViewData["databaseBackupFileName"] = databaseBackupFileName;
+                ViewData["timeOfBackup"] = System.IO.File.GetLastWriteTime(databaseBackupFileName); //use static method to get accurate time
+            }
+
             //var fileName = new DirectoryInfo(Configuration["BackupDirectoryPath"]).GetFiles().OrderByDescending(p=>p.LastWriteTime).FirstOrDefault();
             //var fileName = dirInfo.GetFiles().OrderByDescending(o => o.LastWriteTime).FirstOrDefault();
             // File.GetLastWriteTime()
             //ContextBoundObject.
-            ViewData["databaseBackupFileName"] = databaseBackupFileName;
+    
+            
             ViewData["databaseBackupFilePath"] = Configuration["BackupDirectoryPath"];
-            ViewData["timeOfBackup"] = System.IO.File.GetCreationTime(databaseBackupFileName);
+            
             return View(table);//TODO: change this to use VIEW model instead
+        }
+
+        private String GetPreExistingDatabaseBackupFileName()
+        {
+            var list = Directory.GetFiles(Configuration["BackupDirectoryPath"], $"*.{Configuration["DbBackupFileExtension"]}", SearchOption.TopDirectoryOnly);
+            var databaseBackupFileName = list.OrderByDescending(path => System.IO.File.GetLastWriteTime(path)).FirstOrDefault();
+            return databaseBackupFileName;
         }
 
         // POST: /<controller>/
@@ -74,9 +94,11 @@ namespace DatabackupApplication.Controllers
 
             using (var dbContext = new BloggingContext())
             {
-                string fileName = GetDatabaseBackupFileName(dbContext, Configuration["DbBackupFileExtension"]);
 
-                var commandText = $"BACKUP DATABASE [{databaseName}] TO DISK = '{fileName}' WITH FORMAT";
+                string fileName = GetNewDatabaseBackupFileName(dbContext, Configuration["DbBackupFileExtension"]);
+                ////WITH FORMAT appends full database backup to same file 
+                //var commandText = $"BACKUP DATABASE [{databaseName}] TO DISK = '{fileName}' WITH FORMAT";
+                string commandText = $"BACKUP DATABASE [{databaseName}] TO DISK = '{fileName}' WITH INIT";
                 await Task.Run(() => ExecuteDatabaseBackup(dbContext, commandText));
 
             }
@@ -136,15 +158,17 @@ namespace DatabackupApplication.Controllers
             return table;
         }
 
-        private string GetDatabaseBackupFileName(BloggingContext dbContext,string BackupFileExtension)
+        private string GetNewDatabaseBackupFileName(BloggingContext dbContext,string BackupFileExtension)
         {
+            ////get the appdirectory location to search for backup files
+            //appDirectory = _hostingEnvironment.ContentRootPath;
             //return the database name
-            appDirectory = _hostingEnvironment.ContentRootPath;
             databaseName = dbContext.Database.GetDbConnection().Database;
-            //backup to wherever app is installed
             //var fileName = $"{appDirectory}database_{DateTime.Now:yyyy-MM-dd-HH-mm-ss}_{GenerateRandomDigitCode(10)}.{Configuration["DbBackupFileExtension"]}";
-            //backup to particular directory
-            var fileName = $"{Configuration["BackupDirectoryPath"]}database_{DateTime.Now:yyyy-MM-dd-HH-mm-ss}_{GenerateRandomDigitCode(10)}.{BackupFileExtension}";
+            ////backup to configured directory w/ random name(unique backups)
+            //var fileName = $"{Configuration["BackupDirectoryPath"]}database_{DateTime.Now:yyyy-MM-dd-HH-mm-ss}_{GenerateRandomDigitCode(10)}.{BackupFileExtension}";
+            var fileName = $"{Configuration["BackupDirectoryPath"]}{databaseName}DatabaseBackup.{BackupFileExtension}";
+
             return fileName;
         }
 
