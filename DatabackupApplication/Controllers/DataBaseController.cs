@@ -23,19 +23,21 @@ namespace DatabackupApplication.Controllers
         //private string appDirectory;
         public IHostingEnvironment _hostingEnvironment;
         public IConfiguration Configuration;
-        private BloggingContext _context;
+
+        private DataBase _DBcontext;
         #endregion
 
         # region ctor
-        public DataBaseController(IHostingEnvironment hostingEnvironment, IConfiguration configuration,BloggingContext context)
+        public DataBaseController(IHostingEnvironment hostingEnvironment, IConfiguration configuration,DataBase dataBase)
         {
-            if (hostingEnvironment == null||configuration == null|| context ==null)
+            if (hostingEnvironment == null||configuration == null||  dataBase == null)
                 throw new ArgumentNullException(nameof(hostingEnvironment));
             else
             {
                 _hostingEnvironment = hostingEnvironment;
                 Configuration = configuration;
-                _context = context;
+             
+                _DBcontext = dataBase;
             }
 
         }
@@ -47,7 +49,7 @@ namespace DatabackupApplication.Controllers
         public async Task<IActionResult>  Index()
         {
             //DataTable table = GetTableRows();
-            _context.dataBaseTable = await Task.Run(() => GetTableRows());
+            _DBcontext.dataBaseTable = await Task.Run(() => GetTableRows());
           //  DataTable table = await Task.Run(() => GetTableRows());
 
             //var backupFileNames = _maintenanceService.GetAllBackupFiles().ToList();
@@ -73,7 +75,7 @@ namespace DatabackupApplication.Controllers
             ViewData["databaseBackupFilePath"] = Configuration["BackupDirectoryPath"];
 
             //return View(_context.dataBaseTable);
-            return View(_context);
+            return View(_DBcontext);
         }
         
         // POST: /<controller>/
@@ -106,7 +108,7 @@ namespace DatabackupApplication.Controllers
 
         // POST: /<controller>/
         [HttpPost]
-        public async Task<IActionResult> TakeDataBaseBackupBCP(BloggingContext model)
+        public async Task<IActionResult> TakeDataBaseBackupBCP(DataBase model)
         {
 
             string TableList = string.Join(", ", model.SelectedTables.ToArray());
@@ -143,7 +145,7 @@ namespace DatabackupApplication.Controllers
 
         private async Task TakeTableBackupAsync(string TableName)
         {
-            using (var DbContext = new BloggingContext())
+            using (var DbContext = new DataBase())
             using (var DbCommand = DbContext.Database.GetDbConnection().CreateCommand())
             {
 
@@ -168,7 +170,7 @@ namespace DatabackupApplication.Controllers
 
         private async Task DatabaseBackup(string Arguments,string TypeOfBackup)
         {
-            using (var dbContext = new BloggingContext())
+            using (var dbContext = new DataBase())
             {
 
                 string fileName = GetNewDatabaseBackupFileName(dbContext, Configuration["DbBackupFileExtension"],TypeOfBackup);
@@ -183,7 +185,7 @@ namespace DatabackupApplication.Controllers
         private System.Data.DataTable GetTableRows()
         {
             var table = new System.Data.DataTable();
-            using (var dbContext = new BloggingContext())
+            using (var dbContext = new DataBase())
             using (var dbCommand = dbContext.Database.GetDbConnection().CreateCommand())
             {
                 dbCommand.CommandText = "select * from INFORMATION_SCHEMA.TABLES where table_type='BASE TABLE'";
@@ -202,7 +204,7 @@ namespace DatabackupApplication.Controllers
             return table;
         }
 
-        private string GetNewDatabaseBackupFileName(BloggingContext dbContext,string BackupFileExtension,string TypeOfBackup)
+        private string GetNewDatabaseBackupFileName(DataBase dbContext,string BackupFileExtension,string TypeOfBackup)
         {
             ////get the appdirectory location to search for backup files
             //appDirectory = _hostingEnvironment.ContentRootPath;
@@ -216,7 +218,7 @@ namespace DatabackupApplication.Controllers
             return fileName;
         }
 
-        private static void ExecuteDatabaseBackup(BloggingContext dbContext, string commandText)
+        private static void ExecuteDatabaseBackup(DataBase dbContext, string commandText)
         {
              dbContext.Database.ExecuteSqlCommand(commandText, true);
         }

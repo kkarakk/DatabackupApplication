@@ -41,10 +41,14 @@ namespace DatabackupApplication
 
             services.AddSingleton<IHostingEnvironment>(HostingEnvironment);
 
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
-            services.AddDbContext<BloggingContext>(options =>
+        //    services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+           services.AddDbContext<BloggingContext>(options =>
         options.UseSqlServer(Configuration.GetConnectionString("BloggingDatabase")));
-            
+
+            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1).AddControllersAsServices();
+            services.AddDbContext<DataBase>(options =>
+        options.UseSqlServer(Configuration.GetConnectionString("BloggingDatabase")));
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
