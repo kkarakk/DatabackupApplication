@@ -4,7 +4,7 @@
 
     <h2>View</h2>*@
 
-@model System.Data.DataTable
+@model BloggingContext
 @using System.Data;
 
 
@@ -15,20 +15,20 @@
         <tr>
             <td>
             </td>
-            @foreach (DataColumn col in Model.Columns)
+            @foreach (DataColumn col in Model.dataBaseTable.Columns)
             {
                 <th>@col.ColumnName</th>
             }
         </tr>
     </thead>
     <tbody>
-        @foreach (DataRow row in Model.Rows)
+        @foreach (DataRow row in Model.dataBaseTable.Rows)
         {
         <tr>
             <td>
                 <input type="checkbox" />
             </td>
-            @foreach (DataColumn col in Model.Columns)
+            @foreach (DataColumn col in Model.dataBaseTable.Columns)
             {
                 <td>@row[col.ColumnName]</td>
             }

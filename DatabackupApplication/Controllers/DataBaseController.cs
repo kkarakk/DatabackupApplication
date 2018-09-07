@@ -52,7 +52,8 @@ namespace DatabackupApplication.Controllers
         public async Task<IActionResult>  Index()
         {
             //DataTable table = GetTableRows();
-            DataTable table = await Task.Run(() => GetTableRows());
+            _context.dataBaseTable = await Task.Run(() => GetTableRows());
+          //  DataTable table = await Task.Run(() => GetTableRows());
 
             //var backupFileNames = _maintenanceService.GetAllBackupFiles().ToList();
             String databaseBackupFileName = await Task.Run(() => GetPreExistingDatabaseBackupFileName());
@@ -75,8 +76,9 @@ namespace DatabackupApplication.Controllers
     
             
             ViewData["databaseBackupFilePath"] = Configuration["BackupDirectoryPath"];
-            
-            return View(table);//TODO: change this to use VIEW model instead
+
+            //return View(_context.dataBaseTable);
+            return View(_context);
         }
 
         private String GetPreExistingDatabaseBackupFileName()
