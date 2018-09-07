@@ -17,7 +17,16 @@ namespace DatabackupApplication.Controllers
 {
     public class DataBaseController : Controller
     {
-        
+
+        #region Fields
+        private string databaseName;
+        //private string appDirectory;
+        public IHostingEnvironment _hostingEnvironment;
+        public IConfiguration Configuration;
+        private BloggingContext _context;
+        #endregion
+
+        # region ctor
         public DataBaseController(IHostingEnvironment hostingEnvironment, IConfiguration configuration,BloggingContext context)
         {
             if (hostingEnvironment == null||configuration == null|| context ==null)
@@ -29,26 +38,11 @@ namespace DatabackupApplication.Controllers
                 _context = context;
             }
 
-            
-
         }
 
-        public static string GenerateRandomDigitCode(int length)
-        {
-            var random = new Random();
-            var str = string.Empty;
-            for (var i = 0; i < length; i++)
-                str = string.Concat(str, random.Next(10).ToString());
-            return str;
-        }
-        
-        private  string databaseName;
-        //private string appDirectory;
-        public IHostingEnvironment _hostingEnvironment;
-        public IConfiguration Configuration;
-        private BloggingContext _context;
-        
+        #endregion
 
+        #region Methods
         // GET: /<controller>/
         public async Task<IActionResult>  Index()
         {
@@ -81,18 +75,8 @@ namespace DatabackupApplication.Controllers
             //return View(_context.dataBaseTable);
             return View(_context);
         }
-
-        private String GetPreExistingDatabaseBackupFileName()
-        {
-            
-            string SearchPattern= $"*.{Configuration["DbBackupFileExtension"]}";
-            var list = Directory.GetFiles(Configuration["BackupDirectoryPath"], SearchPattern, SearchOption.TopDirectoryOnly);
-            var databaseBackupFileName = list.OrderByDescending(path => System.IO.File.GetLastWriteTime(path)).SingleOrDefault(str => str.Contains("FullDatabaseBackup"));
-     
-            return databaseBackupFileName;
-        }
-
-        // POST: /<contr oller>/
+        
+        // POST: /<controller>/
         [HttpPost]
         public async Task<IActionResult> TakeDataBaseBackup(string Backup)
         {
@@ -104,6 +88,7 @@ namespace DatabackupApplication.Controllers
 
         }
 
+        // POST: /<controller>/
         [HttpPost]
         public async Task<IActionResult> TakeDataBaseBackupDifferential(string Backup)
         {
@@ -119,7 +104,7 @@ namespace DatabackupApplication.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-
+        // POST: /<controller>/
         [HttpPost]
         public async Task<IActionResult> TakeDataBaseBackupBCP(BloggingContext model)
         {
@@ -130,6 +115,30 @@ namespace DatabackupApplication.Controllers
                 await Task.Run(() => TakeTableBackupAsync(Table));
             }
             return RedirectToAction(nameof(Index));
+        }
+
+        private string GetPreExistingDatabaseBackupFileName()
+        {
+
+            string SearchPattern = $"*.{Configuration["DbBackupFileExtension"]}";
+            var list = Directory.GetFiles(Configuration["BackupDirectoryPath"], SearchPattern, SearchOption.TopDirectoryOnly);
+            var databaseBackupFileName = list.OrderByDescending(path => System.IO.File.GetLastWriteTime(path)).SingleOrDefault(str => str.Contains("FullDatabaseBackup"));
+
+            return databaseBackupFileName;
+        }
+
+        private static string GenerateRandomDigitCode(int length)
+        {
+            var random = new Random();
+            var str = string.Empty;
+            for (var i = 0; i < length; i++)
+                str = string.Concat(str, random.Next(10).ToString());
+            return str;
+        }
+
+        private object getFileWriteTime(string path)
+        {
+            return System.IO.File.GetLastWriteTime(path);
         }
 
         private async Task TakeTableBackupAsync(string TableName)
@@ -170,16 +179,7 @@ namespace DatabackupApplication.Controllers
 
             }
         }
-
-        private object getFileWriteTime(string path)
-        {
-            return System.IO.File.GetLastWriteTime(path);
-        }
-
         
-
-     
-
         private System.Data.DataTable GetTableRows()
         {
             var table = new System.Data.DataTable();
@@ -220,5 +220,7 @@ namespace DatabackupApplication.Controllers
         {
              dbContext.Database.ExecuteSqlCommand(commandText, true);
         }
+
+        #endregion
     }
 }
