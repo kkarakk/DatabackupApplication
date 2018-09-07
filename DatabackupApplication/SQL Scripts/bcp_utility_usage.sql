@@ -45,9 +45,11 @@ use blogging;
 select * from blogging..blog;
 !!bcp blogging..blog out d:\backup.bcp -c -T -S .\SQLExpress -U sa -P 123456 -c
 
-backup database blogging to disk='d:\backup\bloggingDifferential.bak' WITH DIFFERENTIAL;
+!!backup database blogging to disk='d:\backup\bloggingDifferential.bak' WITH DIFFERENTIAL;
 
+!!bcp blogging..blog out d:\blog.bcp -c -T -S .\SQLExpress -U sa -P 123456 
 
+select * from blogging..blog;
 RESTORE HEADERONLY FROM
      DISK = 'd:\backup\BloggingDatabaseBackup.bak'
 

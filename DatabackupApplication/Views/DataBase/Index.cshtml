@@ -5,37 +5,39 @@
     <h2>View</h2>*@
 
 @model BloggingContext
-@using System.Data;
+
 
 
 <h2>List of base tables in database</h2>
-
-<table>
-    <thead>
-        <tr>
-            <td>
-            </td>
-            @foreach (DataColumn col in Model.dataBaseTable.Columns)
+<form asp-controller="Database" method="post">
+    <table>
+        <thead>
+            <tr>
+                <td></td>
+                @foreach (DataColumn col in Model.dataBaseTable.Columns)
+                {
+                    <th>@col.ColumnName</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (DataRow row in Model.dataBaseTable.Rows)
             {
-                <th>@col.ColumnName</th>
+                <tr>
+                    <td>
+                       
+                        <input type="checkbox" value="@row[2]" name="SelectedTables"/>
+                    </td>
+                    @foreach (DataColumn col in Model.dataBaseTable.Columns)
+                    {
+                        <td>@row[col.ColumnName]</td>
+                    }
+                </tr>
             }
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (DataRow row in Model.dataBaseTable.Rows)
-        {
-        <tr>
-            <td>
-                <input type="checkbox" />
-            </td>
-            @foreach (DataColumn col in Model.dataBaseTable.Columns)
-            {
-                <td>@row[col.ColumnName]</td>
-            }
-        </tr>
-        }
-    </tbody>
-</table>
+        </tbody>
+    </table>
+    <input type="submit" asp-action="TakeDataBaseBackupBCP" />
+</form>
 <p></p>
 <label>File Path:</label>
 <label id="latest-backup-name" name="latest-backup-name">
