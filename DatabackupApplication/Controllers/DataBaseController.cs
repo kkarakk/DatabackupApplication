@@ -17,7 +17,7 @@ namespace DatabackupApplication.Controllers
 {
     public class DataBaseController : Controller
     {
-
+        //TODO:truncate database before BCP restore
         #region Fields
         private string databaseName;
         //private string appDirectory;
@@ -97,6 +97,10 @@ namespace DatabackupApplication.Controllers
             if (IsNullOrEmpty(GetPreExistingDatabaseBackupFileName()))
             {
                 //TODO: what should be done if full backup doesn't exist'
+                //if (!FileExists(filePath))
+                //    return;
+
+                //File.Delete(filePath);
             }
             else
             {
@@ -110,11 +114,31 @@ namespace DatabackupApplication.Controllers
         [HttpPost]
         public async Task<IActionResult> TakeDataBaseBackupBCP(DataBase model)
         {
+            //TODO: error log bcp https://forums.asp.net/t/1714452.aspx?How+to+Log+result+of+bcp+command+to+a+txt+file+
+            //string TableList = string.Join(", ", model.SelectedTables.ToArray());
+            if (model.SelectedTables != null) {
+                foreach (string Table in model.SelectedTables)
+                {
+                    await Task.Run(() => TakeTableBCPAsync(Table, "backup"));
+                }
+            }
+            
+            return RedirectToAction(nameof(Index));
+        }
 
-            string TableList = string.Join(", ", model.SelectedTables.ToArray());
-            foreach (string Table in model.SelectedTables)
+        // POST: /<controller>/
+        [HttpPost]
+        public async Task<IActionResult> RestoreDataBaseBackupBCP(DataBase model)
+        {
+
+            //string TableList = string.Join(", ", model.SelectedTables.ToArray());
+            if (model.SelectedTables!=null)
             {
-                await Task.Run(() => TakeTableBackupAsync(Table));
+
+                foreach (string Table in model.SelectedTables)
+                {
+                    await Task.Run(() => TakeTableBCPAsync(Table, "restore"));
+                } 
             }
             return RedirectToAction(nameof(Index));
         }
@@ -143,28 +167,50 @@ namespace DatabackupApplication.Controllers
             return System.IO.File.GetLastWriteTime(path);
         }
 
-        private async Task TakeTableBackupAsync(string TableName)
+        private async Task TakeTableBCPAsync(string TableName,string TypeOfBCPOperation)
         {
             using (var DbContext = new DataBase())
             using (var DbCommand = DbContext.Database.GetDbConnection().CreateCommand())
             {
 
-                DbContext.Database.GetDbConnection().Open();
+                
                 var DBdatabaseName = DbContext.Database.GetDbConnection().Database;
                 //string sCommandText = @"exec xp_cmdshell 'bcp.exe ""select * FROM blogging.INFORMATION_SCHEMA.TABLES""  queryout D:\authors.txt -S .\SQLExpress -U sa -P 123456 -c'";
                 
                    string SQLTableContext = $"{DBdatabaseName}..{TableName}";
                    string BackupPath = $"{Configuration["BackupDirectoryPath"]}{TableName}.{Configuration["DbBCPBackupFileExtension"]}";
+                string BCPErrorFile = $"{Configuration["BackupDirectoryPath"]}{Configuration["BCPErrorFileName"]}";
+                string BCPOutputFile = $"{Configuration["BackupDirectoryPath"]}{Configuration["BCPConsoleOutputFileName"]}";
+                string SQLCommandText;
 
-                   string SQLCommandText = $"exec xp_cmdshell 'bcp.exe {SQLTableContext} out {BackupPath} -c -T -S {Configuration["ServerName"]} -U {Configuration["UserId"]} -P {Configuration["Password"]}'";
-                   //string SQLCommandTextTest = @"exec xp_cmdshell 'bcp.exe ""select * FROM blogging.INFORMATION_SCHEMA.TABLES""  queryout D:\authors.txt -S .\SQLExpress -U sa -P 123456 -c'";
-                   DbCommand.CommandType = System.Data.CommandType.Text;
+                switch (TypeOfBCPOperation)
+                {
+                    case "backup":
+                         SQLCommandText = $"exec xp_cmdshell 'bcp.exe {SQLTableContext} out {BackupPath} -c -T -S {Configuration["ServerName"]} -U {Configuration["UserId"]} -P {Configuration["Password"]}'";
+                        break;
+                    case "restore":
+                         SQLCommandText = $"exec xp_cmdshell 'bcp.exe {SQLTableContext} in {BackupPath} -c -T -S {Configuration["ServerName"]} -U {Configuration["UserId"]} -P {Configuration["Password"]} -e {BCPErrorFile} -o {BCPOutputFile}'";
+
+                        break;
+
+                    default:
+                        SQLCommandText = "";
+                        break;
+                }
+           
+                //string SQLCommandTextTest = @"exec xp_cmdshell 'bcp.exe ""select * FROM blogging.INFORMATION_SCHEMA.TABLES""  queryout D:\authors.txt -S .\SQLExpress -U sa -P 123456 -c'";
+                DbCommand.CommandType = System.Data.CommandType.Text;
                    DbCommand.CommandText = SQLCommandText;
-                   await Task.Run(() => DbCommand.ExecuteNonQuery());
-               
+                if(DbContext.Database.GetDbConnection().State!=ConnectionState.Open)
+                {
+                   await DbContext.Database.GetDbConnection().OpenAsync();
+                }
+                
+                await Task.Run(() => DbCommand.ExecuteNonQuery());
+                DbContext.Database.GetDbConnection().Close();
 
                 //string CommandText = $"exec xp_cmdShell 'bcp.exe {0} .. in {1} -c -q -U {2} -P {3} -t '", DBdatabaseName, GetDatabaseBackupFileName(DbContext,"dat"),Configuration["UserId"],Configuration["Password"]); 
-                
+
             }
         }
 

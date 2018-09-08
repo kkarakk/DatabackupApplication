@@ -49,9 +49,16 @@ select * from blogging..blog;
 
 !!bcp blogging..blog out d:\blog.bcp -c -T -S .\SQLExpress -U sa -P 123456 
 
+!!bcp Blogging..Blog out D:\\Backup\\Blog.bcp -h "CHECK_CONSTRAINTS"  -n -T -S .\SQLExpress -U sa -P 123456
+
+!!bcp Blogging..Blog in D:\\Backup\\Blog.bcp -n -T  -S .\SQLExpress -U sa -P 123456
+
 select * from blogging..blog;
+TRUNCATE table blogging..BLOG;
+update blogging..blog set url = 'http://helloworld.com'  where blogId=3;
 RESTORE HEADERONLY FROM
      DISK = 'd:\backup\BloggingDatabaseBackup.bak'
+
 
 	 
 RESTORE HEADERONLY FROM
