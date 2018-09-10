@@ -28,16 +28,16 @@ namespace DatabackupApplication.Controllers
         #endregion
 
         # region ctor
-        public DataBaseController(IHostingEnvironment hostingEnvironment, IConfiguration configuration,DataBase dataBase)
+        public DataBaseController(IHostingEnvironment hostingEnvironment, IConfiguration configuration,DataBase DBcontext)
         {
-            if (hostingEnvironment == null||configuration == null||  dataBase == null)
+            if (hostingEnvironment == null||configuration == null|| DBcontext == null)
                 throw new ArgumentNullException(nameof(hostingEnvironment));
             else
             {
                 _hostingEnvironment = hostingEnvironment;
                 Configuration = configuration;
              
-                _DBcontext = dataBase;
+                _DBcontext = DBcontext;
             }
 
         }
