@@ -41,13 +41,13 @@
 </form>
 <p></p>
 <label>File Path:</label>
-<label id="latest-backup-name" name="latest-backup-name">
+<label id="latest-backup-path" name="latest-backup-path">
     @ViewData["databaseBackupFilePath"]
 </label>
 <p></p>
 <p></p>
-<label> Last backup:</label>
-<label id="latest-backup-name" name="latest-backup-name">
+<label> Last backup on:</label>
+<label id="latest-backup-time" name="latest-backup-time">
     @ViewData["timeOfBackup"]
 </label>
 <p></p>
@@ -56,6 +56,19 @@
 <label id="latest-backup-name" name="latest-backup-name">
     @ViewData["databaseBackupFileName"]
 </label>
+<p></p>
+<p></p>
+<label> Last Differential backup on:</label>
+<label id="latest-differential-backup-time" name="latest--differential-backup-time">
+    @ViewData["timeOfDifferentialBackup"]
+</label>
+<p></p>
+<label> Latest differential backup file:</label>
+<label id="latest-backup-name" name="latest-backup-name">
+    @ViewData["databaseDifferentialBackupFileName"]
+</label>
+
+
 <p></p>
 <form asp-controller="Database" method="post">
 

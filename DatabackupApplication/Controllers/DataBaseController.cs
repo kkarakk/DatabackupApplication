@@ -53,31 +53,98 @@ namespace DatabackupApplication.Controllers
           //  DataTable table = await Task.Run(() => GetTableRows());
 
             //var backupFileNames = _maintenanceService.GetAllBackupFiles().ToList();
-            String databaseBackupFileName = await Task.Run(() => GetPreExistingDatabaseBackupFileName());
-            if (IsNullOrEmpty(databaseBackupFileName))
+            String FullDatabaseBackupFileName = await Task.Run(() => GetPreExistingDatabaseBackupFileName("Full"));
+            String DifferentialDatabaseBackupFileName = await Task.Run(() => GetPreExistingDatabaseBackupFileName("Differential"));
+            if (IsNullOrEmpty(FullDatabaseBackupFileName))
             {
                 ViewData["databaseBackupFileName"] = $"Does not exist";
                 ViewData["timeOfBackup"] = "Hasn't been created yet";
-                //TODO: Delete relative backup if base backup doesn't exist
+                
+                //TODO:ask if Delete relative backup if base backup doesn't exist
+
+                String DifferentialDatabaseBackupFilePath = $"{Configuration["BackupDirectoryPath"]}{DifferentialDatabaseBackupFileName}";
+                //System.IO.File.SetAttributes(DifferentialDatabaseBackupFilePath, FileAttributes.Normal);
+                //System.IO.File.Delete(DifferentialDatabaseBackupFileName);
+
             }
             else
             {
-                ViewData["databaseBackupFileName"] = databaseBackupFileName;
-                ViewData["timeOfBackup"] = System.IO.File.GetLastWriteTime(databaseBackupFileName); //use static method to get accurate time
+                ViewData["databaseBackupFileName"] = FullDatabaseBackupFileName;
+                ViewData["timeOfBackup"] = System.IO.File.GetLastWriteTime(FullDatabaseBackupFileName); //use static method to get accurate time
+                if (IsNullOrEmpty(DifferentialDatabaseBackupFileName))
+                {
+                    ViewData["databaseDifferentialBackupFileName"] = $"Does not exist";
+                    ViewData["timeOfDifferentialBackup"] = "Hasn't been created yet";
+                }
+                else
+                {
+                    ViewData["databaseDifferentialBackupFileName"] = DifferentialDatabaseBackupFileName;
+                    ViewData["timeOfDifferentialBackup"] = System.IO.File.GetLastWriteTime(DifferentialDatabaseBackupFileName); ;
+                }
             }
 
             //var fileName = new DirectoryInfo(Configuration["BackupDirectoryPath"]).GetFiles().OrderByDescending(p=>p.LastWriteTime).FirstOrDefault();
             //var fileName = dirInfo.GetFiles().OrderByDescending(o => o.LastWriteTime).FirstOrDefault();
             // File.GetLastWriteTime()
             //ContextBoundObject.
-    
-            
+
+
             ViewData["databaseBackupFilePath"] = Configuration["BackupDirectoryPath"];
 
             //return View(_context.dataBaseTable);
             return View(_DBcontext);
         }
-        
+
+        // GET: /<controller>/
+        public async Task<IActionResult> BCPBackupRestore()
+        {
+            //DataTable table = GetTableRows();
+            _DBcontext.dataBaseTable = await Task.Run(() => GetTableRows());
+            //  DataTable table = await Task.Run(() => GetTableRows());
+
+            //var backupFileNames = _maintenanceService.GetAllBackupFiles().ToList();
+            String FullDatabaseBackupFileName = await Task.Run(() => GetPreExistingDatabaseBackupFileName("Full"));
+            String DifferentialDatabaseBackupFileName = await Task.Run(() => GetPreExistingDatabaseBackupFileName("Full"));
+            if (IsNullOrEmpty(FullDatabaseBackupFileName))
+            {
+                ViewData["databaseBackupFileName"] = $"Does not exist";
+                ViewData["timeOfBackup"] = "Hasn't been created yet";
+
+                //TODO:ask if Delete relative backup if base backup doesn't exist
+
+                String DifferentialDatabaseBackupFilePath = $"{Configuration["BackupDirectoryPath"]}{DifferentialDatabaseBackupFileName}";
+                //System.IO.File.SetAttributes(DifferentialDatabaseBackupFilePath, FileAttributes.Normal);
+                //System.IO.File.Delete(DifferentialDatabaseBackupFileName);
+
+            }
+            else
+            {
+                ViewData["databaseBackupFileName"] = FullDatabaseBackupFileName;
+                ViewData["timeOfBackup"] = System.IO.File.GetLastWriteTime(FullDatabaseBackupFileName); //use static method to get accurate time
+                if (IsNullOrEmpty(DifferentialDatabaseBackupFileName))
+                {
+                    ViewData["databaseDifferentialBackupFileName"] = $"Does not exist";
+                    ViewData["timeOfDifferentialBackup"] = "Hasn't been created yet";
+                }
+                else
+                {
+                    ViewData["databaseDifferentialBackupFileName"] = DifferentialDatabaseBackupFileName;
+                    ViewData["timeOfDifferentialBackup"] = System.IO.File.GetLastWriteTime(DifferentialDatabaseBackupFileName); ;
+                }
+            }
+
+            //var fileName = new DirectoryInfo(Configuration["BackupDirectoryPath"]).GetFiles().OrderByDescending(p=>p.LastWriteTime).FirstOrDefault();
+            //var fileName = dirInfo.GetFiles().OrderByDescending(o => o.LastWriteTime).FirstOrDefault();
+            // File.GetLastWriteTime()
+            //ContextBoundObject.
+
+
+            ViewData["databaseBackupFilePath"] = Configuration["BackupDirectoryPath"];
+
+            //return View(_context.dataBaseTable);
+            return View(_DBcontext);
+        }
+
         // POST: /<controller>/
         [HttpPost]
         public async Task<IActionResult> TakeDataBaseBackup(string Backup)
@@ -94,7 +161,7 @@ namespace DatabackupApplication.Controllers
         [HttpPost]
         public async Task<IActionResult> TakeDataBaseBackupDifferential(string Backup)
         {
-            if (IsNullOrEmpty(GetPreExistingDatabaseBackupFileName()))
+            if (IsNullOrEmpty(GetPreExistingDatabaseBackupFileName("Full")))
             {
                 //TODO: what should be done if full backup doesn't exist'
                 //if (!FileExists(filePath))
@@ -143,12 +210,13 @@ namespace DatabackupApplication.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        private string GetPreExistingDatabaseBackupFileName()
+        private string GetPreExistingDatabaseBackupFileName(string TypeOfBackup)
         {
-
+            
             string SearchPattern = $"*.{Configuration["DbBackupFileExtension"]}";
             var list = Directory.GetFiles(Configuration["BackupDirectoryPath"], SearchPattern, SearchOption.TopDirectoryOnly);
-            var databaseBackupFileName = list.OrderByDescending(path => System.IO.File.GetLastWriteTime(path)).SingleOrDefault(str => str.Contains("FullDatabaseBackup"));
+            string BackupStringContains = $"{TypeOfBackup}DatabaseBackup";
+            var databaseBackupFileName = list.OrderByDescending(path => System.IO.File.GetLastWriteTime(path)).SingleOrDefault(str => str.Contains(BackupStringContains));
 
             return databaseBackupFileName;
         }
@@ -201,10 +269,12 @@ namespace DatabackupApplication.Controllers
                 //string SQLCommandTextTest = @"exec xp_cmdshell 'bcp.exe ""select * FROM blogging.INFORMATION_SCHEMA.TABLES""  queryout D:\authors.txt -S .\SQLExpress -U sa -P 123456 -c'";
                 DbCommand.CommandType = System.Data.CommandType.Text;
                    DbCommand.CommandText = SQLCommandText;
+               
                 if(DbContext.Database.GetDbConnection().State!=ConnectionState.Open)
                 {
                    await DbContext.Database.GetDbConnection().OpenAsync();
                 }
+                //dbContext.Database.ExecuteSqlCommand(commandText, true);
                 
                 await Task.Run(() => DbCommand.ExecuteNonQuery());
                 DbContext.Database.GetDbConnection().Close();

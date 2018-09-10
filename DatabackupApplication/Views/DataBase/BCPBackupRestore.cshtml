@@ -1,0 +1,41 @@
+﻿
+@{
+    ViewData["Title"] = "Backup_Restore";
+}
+
+@model DataBase
+
+<h2>Backup_Restore</h2>
+
+<form asp-controller="Database" method="post">
+    <table>
+        <thead>
+            <tr>
+                <td></td>
+                @foreach (DataColumn col in Model.dataBaseTable.Columns)
+                {
+                    <th>@col.ColumnName</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (DataRow row in Model.dataBaseTable.Rows)
+            {
+                <tr>
+                    <td>
+
+                        <input type="checkbox" value="@row[2]" name="SelectedTables" />
+                    </td>
+                    @foreach (DataColumn col in Model.dataBaseTable.Columns)
+                    {
+                        <td>@row[col.ColumnName]</td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+    <input type="submit" asp-action="TakeDataBaseBackupBCP" class="btn btn-primary" value="Bulk Copy Selected Tables" />
+    <input type="submit" asp-action="RestoreDataBaseBackupBCP" class="btn btn-primary" value="Bulk Copy Restore Selected Tables" />
+    <input type="file" id="backupfile" name="backup file" accept=".bcp">
+
+</form>
