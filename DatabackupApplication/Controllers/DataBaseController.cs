@@ -10,6 +10,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Hosting;
 using System.IO;
 using static System.String;
+using System.Data.SqlClient;
+using System.Data.Common;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -174,6 +176,54 @@ namespace DatabackupApplication.Controllers
                 await DatabaseBackup(Configuration["DifferentialDbBackupArguments"], "Differential");
             }
             
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> RestoreDataBaseFromBackup()
+        {
+            String FullDatabaseBackupFileName = await Task.Run(() => GetPreExistingDatabaseBackupFileName("Full"));
+            
+            var conn = new SqlConnectionStringBuilder(Configuration.GetConnectionString("MasterDatabase")).ToString();
+            try
+            {
+                var sqlconn = new SqlConnection(conn);
+
+                //this method (backups) works only with SQL Server database
+                using (var sqlConnectiononn = new SqlConnection(conn))
+                {
+                    var commandText = string.Format(
+                        "DECLARE @ErrorMessage NVARCHAR(4000)\n" +
+                        "ALTER DATABASE [{0}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE\n" +
+                        "BEGIN TRY\n" +
+                            "RESTORE DATABASE [{0}] FROM DISK = '{1}' WITH REPLACE\n" +
+                        "END TRY\n" +
+                        "BEGIN CATCH\n" +
+                            "SET @ErrorMessage = ERROR_MESSAGE()\n" +
+                        "END CATCH\n" +
+                        "ALTER DATABASE [{0}] SET MULTI_USER WITH ROLLBACK IMMEDIATE\n" +
+                        "IF (@ErrorMessage is not NULL)\n" +
+                        "BEGIN\n" +
+                            "RAISERROR (@ErrorMessage, 16, 1)\n" +
+                        "END",
+                        _DBcontext.Database.GetDbConnection().Database,
+                        FullDatabaseBackupFileName);
+
+                    DbCommand dbCommand = new SqlCommand(commandText, sqlConnectiononn);
+                    if (sqlConnectiononn.State != ConnectionState.Open)
+                        sqlConnectiononn.Open();
+                    dbCommand.ExecuteNonQuery();
+                }
+
+            }
+            catch (Exception e)
+            {
+                e.ToString();
+                throw;
+            }
+            //clear all pools
+            SqlConnection.ClearAllPools();
+
             return RedirectToAction(nameof(Index));
         }
 
