@@ -240,7 +240,7 @@ namespace DatabackupApplication.Controllers
                 try
                 {
                     var sqlconn = new SqlConnection(conn);
-
+                    //TODO:fix backup query for differential,doesn't work
                     //this method (backups) works only with SQL Server database
                     //using (SqlConnection sqlConnectiononn = new SqlConnection(conn))
                     //{
