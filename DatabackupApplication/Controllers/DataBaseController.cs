@@ -108,7 +108,7 @@ namespace DatabackupApplication.Controllers
 
             //var backupFileNames = _maintenanceService.GetAllBackupFiles().ToList();
             String FullDatabaseBackupFileName = await Task.Run(() => GetPreExistingDatabaseBackupFileName("Full"));
-            String DifferentialDatabaseBackupFileName = await Task.Run(() => GetPreExistingDatabaseBackupFileName("Full"));
+            String DifferentialDatabaseBackupFileName = await Task.Run(() => GetPreExistingDatabaseBackupFileName("Differential"));
             if (IsNullOrEmpty(FullDatabaseBackupFileName))
             {
                 ViewData["databaseBackupFileName"] = $"Does not exist";
@@ -117,12 +117,14 @@ namespace DatabackupApplication.Controllers
                 //TODO:ask if Delete relative backup if base backup doesn't exist
 
                 String DifferentialDatabaseBackupFilePath = $"{Configuration["BackupDirectoryPath"]}{DifferentialDatabaseBackupFileName}";
+                ViewData["HideDifferential"] = true;
                 //System.IO.File.SetAttributes(DifferentialDatabaseBackupFilePath, FileAttributes.Normal);
                 //System.IO.File.Delete(DifferentialDatabaseBackupFileName);
 
             }
             else
             {
+                ViewData["HideDifferential"] = false;
                 ViewData["databaseBackupFileName"] = FullDatabaseBackupFileName;
                 ViewData["timeOfBackup"] = System.IO.File.GetLastWriteTime(FullDatabaseBackupFileName); //use static method to get accurate time
                 if (IsNullOrEmpty(DifferentialDatabaseBackupFileName))
@@ -146,9 +148,8 @@ namespace DatabackupApplication.Controllers
             ViewData["databaseBackupFilePath"] = Configuration["BackupDirectoryPath"];
 
             //return View(_context.dataBaseTable);
-            return View(_DBcontext);
+            return View("BCPBackupRestore",_DBcontext);
         }
-
         // POST: /<controller>/
         [HttpPost]
         public async Task<IActionResult> TakeDataBaseBackup(string Backup)
@@ -295,7 +296,7 @@ namespace DatabackupApplication.Controllers
                 }
             }
             
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(BCPBackupRestore));
         }
 
         // POST: /<controller>/
@@ -312,7 +313,7 @@ namespace DatabackupApplication.Controllers
                     await Task.Run(() => TakeTableBCPAsync(Table, "restore"));
                 } 
             }
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(BCPBackupRestore));
         }
 
         private string GetPreExistingDatabaseBackupFileName(string TypeOfBackup)

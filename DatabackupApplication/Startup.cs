@@ -70,11 +70,17 @@ namespace DatabackupApplication
             app.UseStaticFiles();
             app.UseCookiePolicy();
 
+            //app.UseMvc(routes =>
+            //{
+            //    routes.MapRoute(
+            //        name: "default",
+            //        template: "{controller=DataBase}/{action=Index}/{id?}");
+            //});
             app.UseMvc(routes =>
             {
                 routes.MapRoute(
                     name: "default",
-                    template: "{controller=DataBase}/{action=Index}/{id?}");
+                    template: "{controller=DataBase}/{action=BCPBackupRestore}/{id?}");
             });
         }
     }
