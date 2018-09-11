@@ -65,12 +65,14 @@ namespace DatabackupApplication.Controllers
                 //TODO:ask if Delete relative backup if base backup doesn't exist
 
                 String DifferentialDatabaseBackupFilePath = $"{Configuration["BackupDirectoryPath"]}{DifferentialDatabaseBackupFileName}";
+                ViewData["HideDifferential"] = true;
                 //System.IO.File.SetAttributes(DifferentialDatabaseBackupFilePath, FileAttributes.Normal);
                 //System.IO.File.Delete(DifferentialDatabaseBackupFileName);
 
             }
             else
             {
+                ViewData["HideDifferential"] = false;
                 ViewData["databaseBackupFileName"] = FullDatabaseBackupFileName;
                 ViewData["timeOfBackup"] = System.IO.File.GetLastWriteTime(FullDatabaseBackupFileName); //use static method to get accurate time
                 if (IsNullOrEmpty(DifferentialDatabaseBackupFileName))
@@ -190,7 +192,7 @@ namespace DatabackupApplication.Controllers
                 var sqlconn = new SqlConnection(conn);
 
                 //this method (backups) works only with SQL Server database
-                using (var sqlConnectiononn = new SqlConnection(conn))
+                using (SqlConnection sqlConnectiononn = new SqlConnection(conn))
                 {
                     var commandText = string.Format(
                         "DECLARE @ErrorMessage NVARCHAR(4000)\n" +
@@ -226,6 +228,59 @@ namespace DatabackupApplication.Controllers
 
             return RedirectToAction(nameof(Index));
         }
+
+        [HttpPost]
+        public async Task<IActionResult> RestoreDataBaseFromDifferentialBackup()
+        {
+            String FullDatabaseBackupFileName = await Task.Run(() => GetPreExistingDatabaseBackupFileName("Full"));
+            String DifferentialDatabaseBackupFileName = await Task.Run(() => GetPreExistingDatabaseBackupFileName("Differential"));
+            if (System.IO.File.GetLastWriteTime(FullDatabaseBackupFileName) < System.IO.File.GetLastWriteTime(DifferentialDatabaseBackupFileName))
+            {
+                var conn = new SqlConnectionStringBuilder(Configuration.GetConnectionString("MasterDatabase")).ToString();
+                try
+                {
+                    var sqlconn = new SqlConnection(conn);
+
+                    //this method (backups) works only with SQL Server database
+                    //using (SqlConnection sqlConnectiononn = new SqlConnection(conn))
+                    //{
+                    //    var commandText = string.Format(
+                    //        "DECLARE @ErrorMessage NVARCHAR(4000)\n" +
+                    //        "ALTER DATABASE [{0}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE\n" +
+                    //        "BEGIN TRY\n" +
+                    //            "RESTORE DATABASE [{0}] FROM DISK = '{1}' WITH REPLACE,NO RECOVERY\n" +
+                    //            "RESTORE DATABASE [{0}] FROM DISK = '{2}' WITH RECOVERY\n" +
+                    //        "END TRY\n" +
+                    //        "BEGIN CATCH\n" +
+                    //            "SET @ErrorMessage = ERROR_MESSAGE()\n" +
+                    //        "END CATCH\n" +
+                    //        "ALTER DATABASE [{0}] SET MULTI_USER WITH ROLLBACK IMMEDIATE\n" +
+                    //        "IF (@ErrorMessage is not NULL)\n" +
+                    //        "BEGIN\n" +
+                    //            "RAISERROR (@ErrorMessage, 16, 1)\n" +
+                    //        "END",
+                    //        _DBcontext.Database.GetDbConnection().Database,
+                    //        FullDatabaseBackupFileName,
+                    //        DifferentialDatabaseBackupFileName);
+
+                    //    DbCommand dbCommand = new SqlCommand(commandText, sqlConnectiononn);
+                    //    if (sqlConnectiononn.State != ConnectionState.Open)
+                    //        sqlConnectiononn.Open();
+                    //    await Task.Run(() => dbCommand.ExecuteNonQuery());
+                    //}
+
+                }
+                catch (Exception e)
+                {
+                    e.ToString();
+                    throw;
+                }
+                //clear all pools
+                SqlConnection.ClearAllPools();
+            }
+            return RedirectToAction(nameof(Index));
+        }
+
 
         // POST: /<controller>/
         [HttpPost]

@@ -75,12 +75,21 @@
     <button type="submit" id="backup-database" name="backup-database" asp-action="TakeDataBaseBackup" class="btn btn-primary">
         Backup Database Full
     </button>
-    <button type="submit" id="backup-database-differential" name="backup-database-differential" asp-action="TakeDataBaseBackupDifferential" class="btn btn-primary">
-        Backup Database Differential
-    </button>
-    <button type="submit" id="restore-database-differential" name="restore-database-differential" asp-action="RestoreDataBaseFromBackup" class="btn btn-primary">
-        Restore Database
-    </button>
+    @if((bool)ViewData["HideDifferential"]==false)
+    {
+        <button type="submit" id="backup-database-differential" name="backup-database-differential" asp-action="TakeDataBaseBackupDifferential" class="btn btn-primary">
+            Backup Database Differential
+        </button>
+    }
 
+    <button type="submit" id="restore-database" name="restore-database" asp-action="RestoreDataBaseFromBackup" class="btn btn-primary">
+        Restore From Database Backup
+    </button>
+    @if((bool)ViewData["HideDifferential"]==false)
+    {
+        <button type="submit" id="restore-database-differential" name="restore-database-differential" asp-action="RestoreDataBaseFromDifferentialBackup" class="btn btn-primary">
+            Restore From Differential Database Backup
+        </button>
+    }
 
 </form>
