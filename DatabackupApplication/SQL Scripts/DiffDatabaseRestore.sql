@@ -1,0 +1,30 @@
+use master;
+DECLARE @ErrorMessage NVARCHAR(4000)  
+ALTER DATABASE [Blogging]SET SINGLE_USER
+WITH ROLLBACK IMMEDIATE 
+BEGIN TRY
+ RESTORE DATABASE [Blogging]
+FROM DISK = 'D:\\Backup\\BloggingFullDatabaseBackup.bak'
+
+WITH  RECOVERY,REPLACE 
+
+
+
+SELECT * FROM Blogging..Blog
+
+RESTORE DATABASE [Blogging]
+FROM DISK = 'D:\\Backup\\BloggingDifferentialDatabaseBackup.bak'
+WITH RECOVERY,REPLACE END 
+TRY 
+BEGIN CATCH 
+SET @ErrorMessage = ERROR_MESSAGE()  
+END CATCH 
+ALTER DATABASE [Blogging]
+SET MULTI_USER
+WITH
+ROLLBACK IMMEDIATE 
+IF(@ErrorMessage IS NOT NULL)  
+BEGIN
+ 
+RAISERROR(@ErrorMessage, 16, 1)  
+END 
