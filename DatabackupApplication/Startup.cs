@@ -82,6 +82,13 @@ namespace DatabackupApplication
                     name: "default",
                     template: "{controller=DataBase}/{action=BCPBackupRestore}/{id?}");
             });
+
+            app.UseMvc(routes =>
+            {
+                routes.MapRoute(
+                    name: "default",
+                    template: "{controller=Blogs}/{action=Index}/{id?}");
+            });
         }
     }
 }

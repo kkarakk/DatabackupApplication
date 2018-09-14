@@ -310,7 +310,7 @@ namespace DatabackupApplication.Controllers
 
                 foreach (string Table in model.SelectedTables)
                 {
-                    await Task.Run(() => TakeTableBCPAsync(Table, "restore"));
+                    await Task.Run(() => RestoreTableFromBCPAsync(Table));
                 } 
             }
             return RedirectToAction(nameof(BCPBackupRestore));
@@ -388,6 +388,105 @@ namespace DatabackupApplication.Controllers
                 //string CommandText = $"exec xp_cmdShell 'bcp.exe {0} .. in {1} -c -q -U {2} -P {3} -t '", DBdatabaseName, GetDatabaseBackupFileName(DbContext,"dat"),Configuration["UserId"],Configuration["Password"]); 
 
             }
+        }
+
+        private async Task RestoreTableFromBCPAsync(string TableName)
+        {
+            using (var DbContext = new DataBase())
+            using (var DbCommand = DbContext.Database.GetDbConnection().CreateCommand())
+            {
+
+
+                var DBdatabaseName = DbContext.Database.GetDbConnection().Database;
+                //string sCommandText = @"exec xp_cmdshell 'bcp.exe ""select * FROM blogging.INFORMATION_SCHEMA.TABLES""  queryout D:\authors.txt -S .\SQLExpress -U sa -P 123456 -c'";
+
+                string SQLTableContext = $"{DBdatabaseName}..{TableName}";
+                string BackupPath = $"{Configuration["BackupDirectoryPath"]}{TableName}.{Configuration["DbBCPBackupFileExtension"]}";
+                string BCPErrorFile = $"{Configuration["BackupDirectoryPath"]}{Configuration["BCPErrorFileName"]}";
+                string BCPOutputFile = $"{Configuration["BackupDirectoryPath"]}{Configuration["BCPConsoleOutputFileName"]}";
+
+                
+
+
+                //string SQLCommandTextTest = @"exec xp_cmdshell 'bcp.exe ""select * FROM blogging.INFORMATION_SCHEMA.TABLES""  queryout D:\authors.txt -S .\SQLExpress -U sa -P 123456 -c'";
+                
+
+                var DropTableConstraints = $"DECLARE @DROP NVARCHAR(MAX),@TABLENAME NVARCHAR(MAX); " +
+                        $"SET @DROP = N''; " +
+                        $"SET @tableName ='{TableName}';  " +
+                        $"SELECT @sql = @sql + N'ALTER TABLE ' + QUOTENAME(cs.name) + '.' + QUOTENAME(ct.name) + ' DROP CONSTRAINT ' +QUOTENAME(fk.name) + ';'  " +
+                        $"FROM sys.foreign_keys AS fk " +
+                        $"INNER JOIN sys.tables AS ct ON fk.parent_object_id = ct.[object_id] INNER JOIN sys.schemas AS cs ON ct.[schema_id] = cs.[schema_id] " +
+                        $"where fk.referenced_object_id =(select object_id from sys.tables where name = @tableName) " +
+                        $"or fk.parent_object_id = (select object_id from sys.tables where name = @tableName); ";
+                var CreateTableConstraints =
+                          $"DECLARE @CREATE NVARCHAR(MAX); " +
+                          $"DECLARE @tablename2 nvarchar(MAX) = '{TableName}'; " +
+                          $"SET @CREATE = N''; " +
+                          $"SELECT @sql2 = @sql2 + N'" +
+                          $"ALTER TABLE '+ QUOTENAME(cs.name) + '.' + QUOTENAME(ct.name)+ ' ADD CONSTRAINT ' + QUOTENAME(fk.name) + ' FOREIGN KEY (' + STUFF((SELECT ',' + QUOTENAME(c.name) " +
+                          $"FROM sys.columns AS c " +
+                          $"INNER JOIN sys.foreign_key_columns AS fkc ON fkc.parent_column_id = c.column_id " +
+                          $"AND fkc.parent_object_id = c.[object_id] " +
+                          $"WHERE fkc.constraint_object_id = fk.[object_id] " +
+                          $"ORDER BY fkc.constraint_column_id FOR XML PATH(N''), TYPE).value(N'.[1]', N'nvarchar(max)'), 1, 1, N'') +') " +
+                          $"REFERENCES ' + QUOTENAME(rs.name) + '.' + QUOTENAME(rt.name) + '(' + STUFF((SELECT ',' + QUOTENAME(c.name) " +
+                          $"FROM sys.columns AS c " +
+                          $"INNER JOIN sys.foreign_key_columns AS fkc ON fkc.referenced_column_id = c.column_id " +
+                          $"AND fkc.referenced_object_id = c.[object_id] " +
+                          $"WHERE fkc.constraint_object_id = fk.[object_id] " +
+                          $"ORDER BY fkc.constraint_column_id FOR XML PATH(N''), TYPE).value(N'.[1]', N'nvarchar(max)'), 1, 1, N'') +');' " +
+                          $"FROM sys.foreign_keys AS fk INNER JOIN sys.tables AS rt " +
+                          $"ON fk.referenced_object_id = rt.[object_id] " +
+                          $"INNER JOIN sys.schemas AS rs  " +
+                          $"ON rt.[schema_id] = rs.[schema_id] " +
+                          $"INNER JOIN sys.tables AS ct " +
+                          $"ON fk.parent_object_id = ct.[object_id] " +
+                          $"INNER JOIN sys.schemas AS cs ON ct.[schema_id] = cs.[schema_id] " +
+                          $"WHERE rt.is_ms_shipped = 0 AND ct.is_ms_shipped = 0 " +
+                          $"AND (fk.referenced_object_id = (select object_id from sys.tables where name = @tablename2) or " +
+                          $"fk.parent_object_id = (select object_id from sys.tables  where name = @tablename2)); ";
+
+                string BCPRestoreCommand = $"exec xp_cmdshell 'bcp.exe {SQLTableContext} in {BackupPath} -c -T -S {Configuration["ServerName"]} -U {Configuration["UserId"]} -P {Configuration["Password"]} -e {BCPErrorFile} -o {BCPOutputFile}'";
+                string SQLCommandText = DropTableConstraints + $" " + CreateTableConstraints + $" "                     
+                                      + $"exec @DROP" + $" "
+                                      + BCPRestoreCommand + $" "
+                                      + $"exec @CREATE";
+                DbCommand.CommandType = System.Data.CommandType.Text;
+               // DbCommand.CommandText = SQLCommandText;
+
+
+
+                //await Task.Run(() => DbCommand.ExecuteNonQuery());
+
+            }
+
+            var conn = new SqlConnectionStringBuilder(Configuration.GetConnectionString("MasterDatabase")).ToString();
+            try
+            {
+                var sqlconn = new SqlConnection(conn);
+
+                //this method (backups) works only with SQL Server database
+                using (SqlConnection sqlConnectiononn = new SqlConnection(conn))
+                {
+
+                    
+
+
+                    // DbCommand dbCommand = new SqlCommand(commandText, sqlConnectiononn);
+                    if (sqlConnectiononn.State != ConnectionState.Open)
+                        sqlConnectiononn.Open();
+                 //   dbCommand.ExecuteNonQuery();
+                }
+
+            }
+            catch (Exception e)
+            {
+                e.ToString();
+                throw;
+            }
+            //clear all pools
+            SqlConnection.ClearAllPools();
         }
 
         private async Task DatabaseBackup(string Arguments,string TypeOfBackup)
