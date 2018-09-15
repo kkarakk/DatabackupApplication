@@ -106,45 +106,6 @@ namespace DatabackupApplication.Controllers
             _DBcontext.dataBaseTable = await Task.Run(() => GetTableRows());
             //  DataTable table = await Task.Run(() => GetTableRows());
 
-            //var backupFileNames = _maintenanceService.GetAllBackupFiles().ToList();
-            String FullDatabaseBackupFileName = await Task.Run(() => GetPreExistingDatabaseBackupFileName("Full"));
-            String DifferentialDatabaseBackupFileName = await Task.Run(() => GetPreExistingDatabaseBackupFileName("Differential"));
-            if (IsNullOrEmpty(FullDatabaseBackupFileName))
-            {
-                ViewData["databaseBackupFileName"] = $"Does not exist";
-                ViewData["timeOfBackup"] = "Hasn't been created yet";
-
-                //TODO:ask if Delete relative backup if base backup doesn't exist
-
-                String DifferentialDatabaseBackupFilePath = $"{Configuration["BackupDirectoryPath"]}{DifferentialDatabaseBackupFileName}";
-                ViewData["HideDifferential"] = true;
-                //System.IO.File.SetAttributes(DifferentialDatabaseBackupFilePath, FileAttributes.Normal);
-                //System.IO.File.Delete(DifferentialDatabaseBackupFileName);
-
-            }
-            else
-            {
-                ViewData["HideDifferential"] = false;
-                ViewData["databaseBackupFileName"] = FullDatabaseBackupFileName;
-                ViewData["timeOfBackup"] = System.IO.File.GetLastWriteTime(FullDatabaseBackupFileName); //use static method to get accurate time
-                if (IsNullOrEmpty(DifferentialDatabaseBackupFileName))
-                {
-                    ViewData["databaseDifferentialBackupFileName"] = $"Does not exist";
-                    ViewData["timeOfDifferentialBackup"] = "Hasn't been created yet";
-                }
-                else
-                {
-                    ViewData["databaseDifferentialBackupFileName"] = DifferentialDatabaseBackupFileName;
-                    ViewData["timeOfDifferentialBackup"] = System.IO.File.GetLastWriteTime(DifferentialDatabaseBackupFileName); ;
-                }
-            }
-
-            //var fileName = new DirectoryInfo(Configuration["BackupDirectoryPath"]).GetFiles().OrderByDescending(p=>p.LastWriteTime).FirstOrDefault();
-            //var fileName = dirInfo.GetFiles().OrderByDescending(o => o.LastWriteTime).FirstOrDefault();
-            // File.GetLastWriteTime()
-            //ContextBoundObject.
-
-
             ViewData["databaseBackupFilePath"] = Configuration["BackupDirectoryPath"];
 
             //return View(_context.dataBaseTable);
@@ -362,11 +323,12 @@ namespace DatabackupApplication.Controllers
                     case "backup":
                          SQLCommandText = $"exec xp_cmdshell 'bcp.exe {SQLTableContext} out {BackupPath} -c -T -S {Configuration["ServerName"]} -U {Configuration["UserId"]} -P {Configuration["Password"]}'";
                         break;
-                    case "restore":
-                         SQLCommandText = $"exec xp_cmdshell 'bcp.exe {SQLTableContext} in {BackupPath} -c -T -S {Configuration["ServerName"]} -U {Configuration["UserId"]} -P {Configuration["Password"]} -e {BCPErrorFile} -o {BCPOutputFile}'";
-
-                        break;
-
+                    //case "restore":
+                    //    {
+                    //        SQLCommandText = $"exec xp_cmdshell 'bcp.exe {SQLTableContext} in {BackupPath} -c -T -S {Configuration["ServerName"]} -U {Configuration["UserId"]} -P {Configuration["Password"]} -e {BCPErrorFile} -o {BCPOutputFile}'";
+                    //        break;
+                    //    }                       
+                        
                     default:
                         SQLCommandText = "";
                         break;
@@ -392,38 +354,37 @@ namespace DatabackupApplication.Controllers
 
         private async Task RestoreTableFromBCPAsync(string TableName)
         {
+            string BCPRestoreCommand;
+            string DBdatabaseName;
             using (var DbContext = new DataBase())
             using (var DbCommand = DbContext.Database.GetDbConnection().CreateCommand())
             {
 
 
-                var DBdatabaseName = DbContext.Database.GetDbConnection().Database;
-                //string sCommandText = @"exec xp_cmdshell 'bcp.exe ""select * FROM blogging.INFORMATION_SCHEMA.TABLES""  queryout D:\authors.txt -S .\SQLExpress -U sa -P 123456 -c'";
+                 DBdatabaseName = DbContext.Database.GetDbConnection().Database;
+                // string sCommandText = @"exec xp_cmdshell 'bcp.exe ""select * FROM blogging.INFORMATION_SCHEMA.TABLES""  queryout D:\authors.txt -S .\SQLExpress -U sa -P 123456 -c'";
 
                 string SQLTableContext = $"{DBdatabaseName}..{TableName}";
                 string BackupPath = $"{Configuration["BackupDirectoryPath"]}{TableName}.{Configuration["DbBCPBackupFileExtension"]}";
                 string BCPErrorFile = $"{Configuration["BackupDirectoryPath"]}{Configuration["BCPErrorFileName"]}";
                 string BCPOutputFile = $"{Configuration["BackupDirectoryPath"]}{Configuration["BCPConsoleOutputFileName"]}";
 
-                
-
-
-                //string SQLCommandTextTest = @"exec xp_cmdshell 'bcp.exe ""select * FROM blogging.INFORMATION_SCHEMA.TABLES""  queryout D:\authors.txt -S .\SQLExpress -U sa -P 123456 -c'";
-                
-
-                var DropTableConstraints = $"DECLARE @DROP NVARCHAR(MAX),@TABLENAME NVARCHAR(MAX); " +
+                 BCPRestoreCommand = $"exec xp_cmdshell 'bcp.exe {SQLTableContext} in {BackupPath} -c -T -S {Configuration["ServerName"]} -U {Configuration["UserId"]} -P {Configuration["Password"]} -e {BCPErrorFile} -o {BCPOutputFile}'";
+            }
+                string DropTableConstraints = $"DECLARE @DROP NVARCHAR(MAX),@TABLENAME NVARCHAR(MAX); " +
                         $"SET @DROP = N''; " +
                         $"SET @tableName ='{TableName}';  " +
-                        $"SELECT @sql = @sql + N'ALTER TABLE ' + QUOTENAME(cs.name) + '.' + QUOTENAME(ct.name) + ' DROP CONSTRAINT ' +QUOTENAME(fk.name) + ';'  " +
+                        $"SELECT @DROP = @DROP + N'ALTER TABLE ' + QUOTENAME(cs.name) + '.' + QUOTENAME(ct.name) + ' DROP CONSTRAINT ' +QUOTENAME(fk.name) + ';'  " +
                         $"FROM sys.foreign_keys AS fk " +
                         $"INNER JOIN sys.tables AS ct ON fk.parent_object_id = ct.[object_id] INNER JOIN sys.schemas AS cs ON ct.[schema_id] = cs.[schema_id] " +
                         $"where fk.referenced_object_id =(select object_id from sys.tables where name = @tableName) " +
                         $"or fk.parent_object_id = (select object_id from sys.tables where name = @tableName); ";
-                var CreateTableConstraints =
+
+                string CreateTableConstraints =
                           $"DECLARE @CREATE NVARCHAR(MAX); " +
                           $"DECLARE @tablename2 nvarchar(MAX) = '{TableName}'; " +
                           $"SET @CREATE = N''; " +
-                          $"SELECT @sql2 = @sql2 + N'" +
+                          $"SELECT @CREATE = @CREATE + N'" +
                           $"ALTER TABLE '+ QUOTENAME(cs.name) + '.' + QUOTENAME(ct.name)+ ' ADD CONSTRAINT ' + QUOTENAME(fk.name) + ' FOREIGN KEY (' + STUFF((SELECT ',' + QUOTENAME(c.name) " +
                           $"FROM sys.columns AS c " +
                           $"INNER JOIN sys.foreign_key_columns AS fkc ON fkc.parent_column_id = c.column_id " +
@@ -447,46 +408,52 @@ namespace DatabackupApplication.Controllers
                           $"AND (fk.referenced_object_id = (select object_id from sys.tables where name = @tablename2) or " +
                           $"fk.parent_object_id = (select object_id from sys.tables  where name = @tablename2)); ";
 
-                string BCPRestoreCommand = $"exec xp_cmdshell 'bcp.exe {SQLTableContext} in {BackupPath} -c -T -S {Configuration["ServerName"]} -U {Configuration["UserId"]} -P {Configuration["Password"]} -e {BCPErrorFile} -o {BCPOutputFile}'";
-                string SQLCommandText = DropTableConstraints + $" " + CreateTableConstraints + $" "                     
-                                      + $"exec @DROP" + $" "
+                
+
+                // 1.Create Drop & Recreate constraint sql queries
+                // 2.Drop Constraints
+                // 3.Execute BCP Restore
+                // 4.Recreate Constraints
+                string SQLCommandText = DropTableConstraints + $" " + CreateTableConstraints + $" "
+                                      + $"exec (@DROP)" + $" "
                                       + BCPRestoreCommand + $" "
-                                      + $"exec @CREATE";
-                DbCommand.CommandType = System.Data.CommandType.Text;
-               // DbCommand.CommandText = SQLCommandText;
+                                      + $"exec (@CREATE)";
 
-
-
-                //await Task.Run(() => DbCommand.ExecuteNonQuery());
-
-            }
-
-            var conn = new SqlConnectionStringBuilder(Configuration.GetConnectionString("MasterDatabase")).ToString();
-            try
-            {
-                var sqlconn = new SqlConnection(conn);
-
-                //this method (backups) works only with SQL Server database
-                using (SqlConnection sqlConnectiononn = new SqlConnection(conn))
+                try
                 {
+                    var conn = new SqlConnectionStringBuilder(Configuration.GetConnectionString("MasterDatabase")).ToString();
+                    using (SqlConnection sqlConnectiononn = new SqlConnection(conn))
+                    {
+                        var commandText = string.Format(
+                            "DECLARE @ErrorMessage NVARCHAR(4000)\n" +
+                            "ALTER DATABASE [{0}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE\n" +
+                            "BEGIN TRY\n" +
+                                "{1} \n" +
+                            "END TRY\n" +
+                            "BEGIN CATCH\n" +
+                                "SET @ErrorMessage = ERROR_MESSAGE()\n" +
+                            "END CATCH\n" +
+                            "ALTER DATABASE [{0}] SET MULTI_USER WITH ROLLBACK IMMEDIATE\n" +
+                            "IF (@ErrorMessage is not NULL)\n" +
+                            "BEGIN\n" +
+                                "RAISERROR (@ErrorMessage, 16, 1)\n" +
+                            "END",
+                            DBdatabaseName,
+                            SQLCommandText);
 
-                    
-
-
-                    // DbCommand dbCommand = new SqlCommand(commandText, sqlConnectiononn);
-                    if (sqlConnectiononn.State != ConnectionState.Open)
-                        sqlConnectiononn.Open();
-                 //   dbCommand.ExecuteNonQuery();
+                        DbCommand dbCommand = new SqlCommand(commandText, sqlConnectiononn);
+                        if (sqlConnectiononn.State != ConnectionState.Open)
+                            sqlConnectiononn.Open();
+                        await Task.Run(() => dbCommand.ExecuteNonQuery());
+                    }
                 }
+                catch (Exception e)
+                {
+                    var seeException = e.ToString();
 
-            }
-            catch (Exception e)
-            {
-                e.ToString();
-                throw;
-            }
-            //clear all pools
-            SqlConnection.ClearAllPools();
+                }
+                SqlConnection.ClearAllPools();
+            
         }
 
         private async Task DatabaseBackup(string Arguments,string TypeOfBackup)
