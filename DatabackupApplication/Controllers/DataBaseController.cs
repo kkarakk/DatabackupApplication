@@ -175,7 +175,10 @@ namespace DatabackupApplication.Controllers
 
                     DbCommand dbCommand = new SqlCommand(commandText, sqlConnectiononn);
                     if (sqlConnectiononn.State != ConnectionState.Open)
+                    {
                         sqlConnectiononn.Open();
+                    }
+
                     dbCommand.ExecuteNonQuery();
                 }
 
@@ -318,22 +321,10 @@ namespace DatabackupApplication.Controllers
                 string BCPOutputFile = $"{Configuration["BackupDirectoryPath"]}{Configuration["BCPConsoleOutputFileName"]}";
                 string SQLCommandText;
 
-                switch (TypeOfBCPOperation)
-                {
-                    case "backup":
+             
+                  
                          SQLCommandText = $"exec xp_cmdshell 'bcp.exe {SQLTableContext} out {BackupPath} -c -T -S {Configuration["ServerName"]} -U {Configuration["UserId"]} -P {Configuration["Password"]}'";
-                        break;
-                    //case "restore":
-                    //    {
-                    //        SQLCommandText = $"exec xp_cmdshell 'bcp.exe {SQLTableContext} in {BackupPath} -c -T -S {Configuration["ServerName"]} -U {Configuration["UserId"]} -P {Configuration["Password"]} -e {BCPErrorFile} -o {BCPOutputFile}'";
-                    //        break;
-                    //    }                       
-                        
-                    default:
-                        SQLCommandText = "";
-                        break;
-                }
-           
+             
                 //string SQLCommandTextTest = @"exec xp_cmdshell 'bcp.exe ""select * FROM blogging.INFORMATION_SCHEMA.TABLES""  queryout D:\authors.txt -S .\SQLExpress -U sa -P 123456 -c'";
                 DbCommand.CommandType = System.Data.CommandType.Text;
                    DbCommand.CommandText = SQLCommandText;

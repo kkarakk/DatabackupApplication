@@ -52,7 +52,7 @@ PRINT @sql;
 
 
 
---ALTER TABLE [POST] ADD CONSTRAINT [FK_Post_Blog_BlogID] FOREIGN KEY ([BlogId]) REFERENCES [Blog] ([BlogId]) ON DELETE CASCADE;
+ALTER TABLE [POST] ADD CONSTRAINT [FK_Post_Blog_BlogID] FOREIGN KEY ([BlogId]) REFERENCES [Blog] ([BlogId]) ON DELETE CASCADE;
 
 --!!bcp Blogging..Post in D:\\Backup\\Post.bcp -c -T  -S .\SQLExpress -U sa -P 123456
 
